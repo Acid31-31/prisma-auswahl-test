@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Prisma Auswahl — Test</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Prisma Auswahl</h1>
+        <p class="sub">Web-Testversion — gleiche Logik wie die WPF-App. Rot = geht nicht.</p>
+      </div>
+      <span class="badge">TEST · GitHub Pages</span>
+    </header>
+
+    <section class="card inputs">
+      <label>Materialgruppe
+        <select id="group"></select>
+      </label>
+      <label>Material
+        <select id="material"></select>
+      </label>
+      <label>Blechdicke [mm]
+        <select id="thickness"></select>
+      </label>
+      <label>Fertigungsmaß / Sollmaß [mm]
+        <input id="fertigung" type="text" inputmode="decimal" placeholder="z. B. 50"/>
+      </label>
+      <label>Werkstücklänge / Biegelänge [mm]
+        <input id="laenge" type="text" inputmode="decimal" value="1000"/>
+      </label>
+      <p class="hint" id="laengeHint">Maschine max. 3000 mm · Uniband max. 1000 mm · Empfehlung: geringste Gesamtkraft</p>
+    </section>
+
+    <section class="hero" id="hero">
+      <div class="hero-label" id="heroLabel">EMPFOHLEN</div>
+      <div class="hero-prisma" id="heroPrisma">—</div>
+      <div class="hero-detail" id="heroDetail">Werte wählen…</div>
+    </section>
+
+    <section class="card table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Prisma</th>
+            <th>Dicke</th>
+            <th>Belastung</th>
+            <th>kN/m</th>
+            <th>Gesamt kN</th>
+            <th>Verfahren</th>
+            <th>Radius</th>
+            <th>Maßabzug</th>
+            <th>Abwicklung</th>
+            <th>Min. Abw.</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+
+    <footer id="status">Lade Tabelle…</footer>
+  </div>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
