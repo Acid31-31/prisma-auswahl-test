@@ -1,11 +1,11 @@
 /** Kernlogik (wie WPF ToolLoad + TableService) */
-const MACHINE_MAX_MM = 3000;
+let MACHINE_MAX_MM = 3000;
 const RM = 450;
 
 const FIT = { Optimal: 3, Moeglich: 2, Eingeschraenkt: 1, Unzulaessig: 0 };
 
 function die(v, minLeg, marks) {
-  return { v, minLeg, label: "V-" + v, isUni: false, uniV: null, maxBend: null, marks, rm: RM };
+  return { v, minLeg, label: "V-" + v, isUni: false, uniV: null, maxBend: null, marks: marks.map(m => [...m]), rm: RM };
 }
 function uni() {
   return {
@@ -14,21 +14,57 @@ function uni() {
   };
 }
 
-const TOOLS = [
-  die(6, 4.5, [[0.5, "-"], [0.8, "x"], [1.0, "-"], [1.2, "!"]]),
-  die(8, 6.0, [[0.5, "!"], [0.8, "-"], [1.0, "x"], [1.2, "-"], [1.5, "!"]]),
-  die(10, 7.5, [[0.8, "!"], [1.0, "-"], [1.2, "x"], [1.5, "-"], [2.0, "!"]]),
-  die(16, 12.0, [[1.2, "!"], [1.5, "-"], [2.0, "x"], [2.5, "-"], [3.0, "!"]]),
-  die(20, 15.0, [[1.5, "!"], [2.0, "-"], [2.5, "x"], [3.0, "-"], [4.0, "!"]]),
-  die(24, 18.0, [[2.0, "!"], [2.5, "-"], [3.0, "x"], [4.0, "-"], [5.0, "!"]]),
-  die(30, 22.5, [[2.5, "!"], [3.0, "-"], [4.0, "x"], [5.0, "-"], [6.0, "!"]]),
-  die(40, 30.0, [[3.0, "!"], [4.0, "-"], [5.0, "x"], [6.0, "-"], [8.0, "!"]]),
-  die(50, 37.5, [[4.0, "!"], [5.0, "-"], [6.0, "x"], [8.0, "-"], [10.0, "!"]]),
-  die(60, 45.0, [[5.0, "!"], [6.0, "x"], [8.0, "-"], [10.0, "!"]]),
-  die(70, 52.5, [[6.0, "!"], [8.0, "x"], [10.0, "-"]]),
-  die(80, 60.0, [[6.0, "!"], [8.0, "-"], [10.0, "x"]]),
-  uni(),
-];
+function defaultTools() {
+  return [
+    die(6, 4.5, [[0.5, "-"], [0.8, "x"], [1.0, "-"], [1.2, "!"]]),
+    die(8, 6.0, [[0.5, "!"], [0.8, "-"], [1.0, "x"], [1.2, "-"], [1.5, "!"]]),
+    die(10, 7.5, [[0.8, "!"], [1.0, "-"], [1.2, "x"], [1.5, "-"], [2.0, "!"]]),
+    die(16, 12.0, [[1.2, "!"], [1.5, "-"], [2.0, "x"], [2.5, "-"], [3.0, "!"]]),
+    die(20, 15.0, [[1.5, "!"], [2.0, "-"], [2.5, "x"], [3.0, "-"], [4.0, "!"]]),
+    die(24, 18.0, [[2.0, "!"], [2.5, "-"], [3.0, "x"], [4.0, "-"], [5.0, "!"]]),
+    die(30, 22.5, [[2.5, "!"], [3.0, "-"], [4.0, "x"], [5.0, "-"], [6.0, "!"]]),
+    die(40, 30.0, [[3.0, "!"], [4.0, "-"], [5.0, "x"], [6.0, "-"], [8.0, "!"]]),
+    die(50, 37.5, [[4.0, "!"], [5.0, "-"], [6.0, "x"], [8.0, "-"], [10.0, "!"]]),
+    die(60, 45.0, [[5.0, "!"], [6.0, "x"], [8.0, "-"], [10.0, "!"]]),
+    die(70, 52.5, [[6.0, "!"], [8.0, "x"], [10.0, "-"]]),
+    die(80, 60.0, [[6.0, "!"], [8.0, "-"], [10.0, "x"]]),
+    uni(),
+  ];
+}
+
+let TOOLS = defaultTools();
+
+function setTools(list) {
+  TOOLS = list;
+}
+function setMachineMax(mm) {
+  MACHINE_MAX_MM = mm > 0 ? mm : 3000;
+}
+function getMachineMax() { return MACHINE_MAX_MM; }
+function getTools() { return TOOLS; }
+
+function marksToText(marks) {
+  return (marks || []).map(([t, m]) =>
+    String(t).replace(".", ",") + ":" + m
+  ).join("; ");
+}
+
+function parseMarks(text) {
+  if (!text || !String(text).trim()) return [];
+  const out = [];
+  String(text).split(/[;]+/).forEach(part => {
+    const p = part.trim();
+    if (!p) return;
+    const [a, b] = p.split(":");
+    if (!a || !b) return;
+    const t = Number(String(a).trim().replace(",", "."));
+    const m = String(b).trim()[0];
+    if (!Number.isFinite(t) || t <= 0) return;
+    const mark = (m === "x" || m === "X" || m === "o" || m === "O") ? "x" : (m === "!" ? "!" : "-");
+    out.push([t, mark]);
+  });
+  return out.sort((x, y) => x[0] - y[0]);
+}
 
 function fromMark(m) {
   if (m === "x") return "Optimal";
@@ -193,4 +229,7 @@ function find(rows, group, material, thickness, fert, laenge) {
     });
 }
 
-window.PrismaEngine = { find, fmtDe, fitText, MACHINE_MAX_MM, TOOLS };
+window.PrismaEngine = {
+  find, fmtDe, fitText, getMachineMax, setMachineMax, getTools, setTools,
+  defaultTools, resolveTool, marksToText, parseMarks, MACHINE_MAX_MM: 3000,
+};

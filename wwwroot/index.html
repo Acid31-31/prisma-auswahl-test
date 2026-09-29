@@ -13,9 +13,12 @@
       <div class="brand">
         <div class="brand-mark">IT Designs · Test</div>
         <h1>Prisma Auswahl</h1>
-        <p class="sub">Web-Testversion — gleiche Logik wie die WPF-App. Hintergrund wie auf it-designs.de. Rot = geht nicht.</p>
+        <p class="sub">Web-Testversion — gleiche Logik wie die WPF-App. Rot = geht nicht.</p>
       </div>
-      <span class="badge">TEST · GITHUB PAGES</span>
+      <div class="header-actions">
+        <button type="button" class="btn" id="btnSettings">Einstellungen</button>
+        <span class="badge">TEST · GITHUB PAGES</span>
+      </div>
     </header>
 
     <section class="card inputs">
@@ -67,6 +70,96 @@
     <footer id="status">Lade Tabelle…</footer>
     <p class="foot-brand">Hintergrund von <a href="https://www.it-designs.de/" target="_blank" rel="noopener">IT Designs</a> · Prisma Auswahl Test</p>
   </div>
+
+  <!-- Einstellungen -->
+  <div class="modal" id="modalSettings" hidden>
+    <div class="modal-card">
+      <h2>Einstellungen</h2>
+      <p class="modal-sub">Prisma- und Werkstoffwerte anpassen oder Maschinenlimit ändern.</p>
+      <button type="button" class="btn btn-primary btn-block" id="btnPrismaAnpassung">Prisma Anpassung</button>
+      <p class="hint" style="margin:8px 0 16px">Material und Prisma wählen — dann alle Werte ändern.</p>
+      <label>Maschinen-Max. Biegelänge [mm]
+        <input id="cfgMachineMax" type="text" inputmode="decimal" value="3000"/>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="btnSaveMachine">Maschinenwert speichern</button>
+        <button type="button" class="btn" id="btnCloseSettings">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prisma Anpassung -->
+  <div class="modal" id="modalPrisma" hidden>
+    <div class="modal-card modal-wide">
+      <h2>Prisma Anpassung</h2>
+      <p class="modal-sub">Material und Prisma wählen — danach erscheinen alle Werte zum Ändern.</p>
+
+      <div class="inputs card" style="margin-bottom:14px">
+        <label>Materialgruppe
+          <select id="editGroup"></select>
+        </label>
+        <label>Material / Werkstoff
+          <select id="editMaterial"></select>
+        </label>
+        <label>Prisma
+          <select id="editPrisma"></select>
+        </label>
+      </div>
+
+      <div id="editValues" hidden>
+        <h3 class="section-title">Werkzeug</h3>
+        <div class="inputs card">
+          <label>Bezeichnung
+            <input id="toolLabel" type="text"/>
+          </label>
+          <label>V [mm]
+            <input id="toolV" type="text" inputmode="decimal"/>
+          </label>
+          <label>Min. Schenkel [mm]
+            <input id="toolMinLeg" type="text" inputmode="decimal"/>
+          </label>
+          <label>Max. Biegelänge [mm]
+            <input id="toolMaxLen" type="text" inputmode="decimal"/>
+          </label>
+          <label>V_eff (nur Uniband)
+            <input id="toolUniV" type="text" inputmode="decimal"/>
+          </label>
+          <label class="span-2">Belastungspunkte (Dicke:Marke; …)
+            <input id="toolMarks" type="text"/>
+          </label>
+        </div>
+
+        <div class="section-row">
+          <h3 class="section-title">Maßabzug / Werkstoff-Werte</h3>
+          <button type="button" class="btn btn-sm" id="btnAddDicke">Dicke +</button>
+        </div>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Dicke</th>
+                <th>Verfahren</th>
+                <th>Radius</th>
+                <th>Maßabzug</th>
+                <th>Min. Abw.</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="editRows"></tbody>
+          </table>
+        </div>
+        <p class="hint" style="margin-top:8px">Belastung: x=optimal, -=möglich, !=Überlast. Beispiel: 4:!; 5:-; 6:x</p>
+      </div>
+      <p id="editEmpty" class="hint" style="text-align:center;padding:24px">Bitte Material und Prisma wählen.</p>
+
+      <div class="modal-actions">
+        <button type="button" class="btn" id="btnResetTable">Standard (alles)</button>
+        <button type="button" class="btn" id="btnCancelPrisma">Abbrechen</button>
+        <button type="button" class="btn btn-primary" id="btnSavePrisma">Speichern</button>
+      </div>
+    </div>
+  </div>
+
   <script src="bg-matrix.js"></script>
   <script src="engine.js"></script>
   <script src="app.js"></script>
