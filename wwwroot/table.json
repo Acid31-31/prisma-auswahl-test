@@ -78,10 +78,10 @@
     "thickness": 1.5,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "DIN",
+    "verfahren": "UNI Stahl",
     "radiusText": "R 0,95",
     "massabzug": -2.7,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 4.5
   },
   {
     "group": "Stahl",
@@ -102,10 +102,10 @@
     "thickness": 2.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "DIN",
+    "verfahren": "UNI Stahl",
     "radiusText": "R 0,78",
     "massabzug": -3.4,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 4.0
   },
   {
     "group": "Stahl",
@@ -162,10 +162,10 @@
     "thickness": 3.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "DIN",
+    "verfahren": "UNI Stahl",
     "radiusText": "R 0,5",
     "massabzug": -4.8,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 3.0
   },
   {
     "group": "Stahl",
@@ -222,10 +222,10 @@
     "thickness": 4.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "",
-    "radiusText": "",
+    "verfahren": "UNI Stahl",
+    "radiusText": "R 0,2",
     "massabzug": -5.8,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 2.0
   },
   {
     "group": "Stahl",
@@ -390,10 +390,10 @@
     "thickness": 0.8,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "",
-    "radiusText": "",
+    "verfahren": "UNI V2A",
+    "radiusText": "R 1,34",
     "massabzug": -1.8,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 5.2
   },
   {
     "group": "VA",
@@ -402,10 +402,10 @@
     "thickness": 1.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "INNENMAßE",
-    "radiusText": "",
+    "verfahren": "UNI V2A",
+    "radiusText": "R 1,1",
     "massabzug": -2.0,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 5.0
   },
   {
     "group": "VA",
@@ -450,10 +450,10 @@
     "thickness": 1.5,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "INNENMAßE",
+    "verfahren": "UNI V2A",
     "radiusText": "R 1,0",
     "massabzug": -3.0,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 4.5
   },
   {
     "group": "VA",
@@ -474,10 +474,10 @@
     "thickness": 2.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "DIN",
+    "verfahren": "UNI V2A",
     "radiusText": "R 1,75",
     "massabzug": -3.8,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 4.0
   },
   {
     "group": "VA",
@@ -522,10 +522,10 @@
     "thickness": 3.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "DIN",
+    "verfahren": "UNI V2A",
     "radiusText": "R 0,75",
     "massabzug": -4.9,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 3.0
   },
   {
     "group": "VA",
@@ -726,10 +726,10 @@
     "thickness": 2.5,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "DIN",
+    "verfahren": "UNI V2A",
     "radiusText": "R 1,6",
     "massabzug": -4.5,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 3.5
   },
   {
     "group": "VA",
@@ -786,10 +786,10 @@
     "thickness": 1.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "",
-    "radiusText": "",
+    "verfahren": "UNI Alu",
+    "radiusText": "R 0,63",
     "massabzug": -1.8,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 5.0
   },
   {
     "group": "ALU",
@@ -834,10 +834,10 @@
     "thickness": 1.5,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "",
-    "radiusText": "",
+    "verfahren": "UNI Alu",
+    "radiusText": "R 0,25",
     "massabzug": -2.4,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 4.5
   },
   {
     "group": "ALU",
@@ -870,10 +870,10 @@
     "thickness": 2.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "DIN",
-    "radiusText": "R-0,35",
+    "verfahren": "UNI Alu",
+    "radiusText": "R 0,35",
     "massabzug": -3.2,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 4.0
   },
   {
     "group": "ALU",
@@ -906,10 +906,10 @@
     "thickness": 3.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "Matrize V16",
+    "verfahren": "UNI Alu",
     "radiusText": "R 1,25",
     "massabzug": -4.5,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 3.0
   },
   {
     "group": "ALU",
@@ -930,10 +930,10 @@
     "thickness": 4.0,
     "thicknessLabel": null,
     "prisma": "UNI",
-    "verfahren": "",
-    "radiusText": "",
+    "verfahren": "UNI Alu",
+    "radiusText": "R 0,05",
     "massabzug": -6.0,
-    "mindestAbwicklung": null
+    "mindestAbwicklung": 2.0
   },
   {
     "group": "ALU",
