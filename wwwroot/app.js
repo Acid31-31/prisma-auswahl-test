@@ -8,6 +8,9 @@
   const STORE_ROWS = "prisma-web-rows";
   const STORE_TOOLS = "prisma-web-tools";
   const STORE_MAX = "prisma-web-machineMax";
+  const STORE_VER = "prisma-web-dataVer";
+  /** Hochzählen, wenn table.json maßgeblich neu ist — alte localStorage-Zeilen verwerfen. */
+  const DATA_VERSION = "2026-09-30-uni-v2";
 
   let baseRows = [];
   let rows = [];
@@ -75,11 +78,17 @@
       localStorage.setItem(STORE_ROWS, JSON.stringify(rows));
       localStorage.setItem(STORE_TOOLS, JSON.stringify(getTools()));
       localStorage.setItem(STORE_MAX, String(getMachineMax()));
+      localStorage.setItem(STORE_VER, DATA_VERSION);
     } catch (_) { /* ignore */ }
   }
 
   function loadLocalOverrides() {
     try {
+      const ver = localStorage.getItem(STORE_VER);
+      if (ver !== DATA_VERSION) {
+        localStorage.removeItem(STORE_ROWS);
+        localStorage.setItem(STORE_VER, DATA_VERSION);
+      }
       const max = localStorage.getItem(STORE_MAX);
       if (max) setMachineMax(Number(max) || 3000);
       const tools = localStorage.getItem(STORE_TOOLS);
@@ -465,7 +474,7 @@
   el.fertigung.addEventListener("input", recalc);
   el.laenge.addEventListener("input", recalc);
 
-  fetch("table.json")
+  fetch("table.json?v=" + encodeURIComponent(DATA_VERSION))
     .then(r => {
       if (!r.ok) throw new Error("table.json nicht geladen");
       return r.json();
