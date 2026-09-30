@@ -139,7 +139,7 @@ function evaluatePossible(row, tool, fitVal, fert, abw, laenge) {
   }
   if (fert != null) {
     if (tool?.minLeg != null && fert + 0.02 < tool.minLeg)
-      return { ok: false, reason: `Schenkel zu kurz (min. ${fmtDe(tool.minLeg)} mm)` };
+      return { ok: false, reason: `Mindestkante zu kurz (min. ${fmtDe(tool.minLeg)} mm)` };
     if (abw != null && row.mindestAbwicklung != null && abw + 0.02 < row.mindestAbwicklung)
       return { ok: false, reason: `Abw. zu kurz (${fmtDe(abw)} < ${fmtDe(row.mindestAbwicklung)} mm)` };
   }

@@ -193,6 +193,7 @@
       const kraft = r.load == null ? "—" : Math.round(r.load).toLocaleString("de-DE") + " kN/m"
         + (/^UNI/i.test(r.row.prisma) ? " (V≈45)" : "");
       const gesamt = r.total == null ? "—" : Math.round(r.total).toLocaleString("de-DE") + " kN";
+      const minKante = r.tool?.minLeg == null ? "—" : fmtDe(r.tool.minLeg);
       const status = r.empfohlen ? "empfohlen" : (r.reason || "");
       tr.innerHTML = `
         <td>${r.row.prisma}</td>
@@ -200,6 +201,7 @@
         <td>${fitText(r.fit)}</td>
         <td>${kraft}</td>
         <td>${gesamt}</td>
+        <td>${minKante}</td>
         <td>${r.row.verfahren || "—"}</td>
         <td>${r.row.radiusText || "—"}</td>
         <td>${r.row.massabzug == null ? "—" : fmtDe(r.row.massabzug)}</td>
@@ -214,7 +216,7 @@
       el.heroLabel.textContent = "NICHT MÖGLICH";
       el.heroPrisma.textContent = "—";
       el.heroDetail.textContent = results.length
-        ? "Kein Werkzeug passt (Überlast, Länge, Schenkel oder Min.-Abwicklung)."
+        ? "Kein Werkzeug passt (Überlast, Länge, Mindestkante oder Min.-Abwicklung)."
         : "Keine Treffer in der Tabelle.";
       el.status.textContent = results.length
         ? `${results.length} Einträge — alle gesperrt.`
@@ -233,6 +235,7 @@
     ];
     if (best.load != null) parts.push(Math.round(best.load).toLocaleString("de-DE") + " kN/m");
     if (best.total != null) parts.push("Gesamt " + Math.round(best.total).toLocaleString("de-DE") + " kN");
+    if (best.tool?.minLeg != null) parts.push("Mindestkante " + fmtDe(best.tool.minLeg) + " mm");
     if (best.row.radiusText) parts.push(best.row.radiusText);
     if (best.abw != null) parts.push("Abwicklung " + fmtDe(best.abw) + " mm");
     el.heroDetail.textContent = parts.join(" · ");
