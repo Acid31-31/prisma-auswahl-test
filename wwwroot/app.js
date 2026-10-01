@@ -10,7 +10,7 @@
   const STORE_MAX = "prisma-web-machineMax";
   const STORE_VER = "prisma-web-dataVer";
   /** Hochzählen, wenn table.json maßgeblich neu ist — alte localStorage-Zeilen verwerfen. */
-  const DATA_VERSION = "2026-09-30-uni-v2";
+  const DATA_VERSION = "2026-10-01-mat-default";
 
   let baseRows = [];
   let rows = [];
@@ -110,7 +110,16 @@
   }
   function materialsOf(list, group) {
     return [...new Set(list.filter(r => r.group === group).map(r => r.material))]
-      .sort((a, b) => a.localeCompare(b, "de"));
+      .sort((a, b) => {
+        const ap = a.localeCompare(group, "de", { sensitivity: "accent" }) === 0 ? 0 : 1;
+        const bp = b.localeCompare(group, "de", { sensitivity: "accent" }) === 0 ? 0 : 1;
+        return ap - bp || a.localeCompare(b, "de");
+      });
+  }
+  function preferredMaterial(mats, group) {
+    if (!mats.length) return "";
+    const match = mats.find(m => m.localeCompare(group, "de", { sensitivity: "accent" }) === 0);
+    return match || mats[0];
   }
   function thicknesses(group, material) {
     return [...new Set(
@@ -150,7 +159,7 @@
   function refreshMaterials() {
     const g = el.group.value;
     const mats = materialsOf(rows, g);
-    fillSelect(el.material, mats, mats[0]);
+    fillSelect(el.material, mats, preferredMaterial(mats, g));
     refreshThicknesses();
   }
 
@@ -168,7 +177,7 @@
     const gs = groupsOf(rows);
     fillSelect(el.group, gs, gs.includes(prevG) ? prevG : (gs.includes("Stahl") ? "Stahl" : gs[0]));
     const mats = materialsOf(rows, el.group.value);
-    fillSelect(el.material, mats, mats.includes(prevM) ? prevM : mats[0]);
+    fillSelect(el.material, mats, mats.includes(prevM) ? prevM : preferredMaterial(mats, el.group.value));
     const thicks = thicknesses(el.group.value, el.material.value);
     const tNum = parseDe(prevT);
     const match = thicks.find(t => Math.abs(t - (tNum || -1)) <= 0.051);
@@ -275,7 +284,7 @@
 
   function refreshEditMaterials() {
     const mats = materialsOf(editBuffer, el.editGroup.value);
-    fillSelect(el.editMaterial, mats, mats[0]);
+    fillSelect(el.editMaterial, mats, preferredMaterial(mats, el.editGroup.value));
     refreshEditPrismas();
   }
 
