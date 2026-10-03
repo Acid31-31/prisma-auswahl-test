@@ -136,7 +136,19 @@ h1 {
 #zkRows td.ok { color: var(--green); }
 #zkRows td.warn { color: #e6b35a; }
 #zkRows td.fail { color: var(--fail); }
-#viewZKantung[hidden], #viewPrisma[hidden] { display: none !important; }
+#viewZKantung[hidden],
+#viewPrisma[hidden],
+#viewBohrung[hidden],
+#viewEntlastung[hidden] { display: none !important; }
+
+.zk-hero.ok { border-color: rgba(49, 201, 91, 0.35); }
+.zk-hero.fail { border-color: rgba(255, 122, 122, 0.35); }
+.inputs .span-all { grid-column: 1 / -1; }
+
+@media (max-width: 800px) {
+  .tabs { width: 100%; flex-wrap: wrap; }
+  .tab { flex: 1 1 auto; text-align: center; }
+}
 
 .btn {
   display: inline-flex;

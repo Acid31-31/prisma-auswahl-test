@@ -19,6 +19,8 @@
         <nav class="tabs" aria-label="Module">
           <button type="button" class="tab active" data-view="prisma">Prisma</button>
           <button type="button" class="tab" data-view="zkantung">Z-Kantung</button>
+          <button type="button" class="tab" data-view="bohrung">Bohrung</button>
+          <button type="button" class="tab" data-view="entlastung">Entlastung</button>
         </nav>
         <button type="button" class="btn" id="btnSettings">Einstellungen</button>
         <span class="badge">TEST · GITHUB PAGES</span>
@@ -137,6 +139,80 @@
       </div>
     </div>
 
+    <div id="viewBohrung" hidden>
+      <section class="card inputs">
+        <label>Materialstärke t [mm]
+          <select id="bohrT"></select>
+        </label>
+        <label>Modus
+          <select id="bohrMode">
+            <option value="normal">Normalbohrung</option>
+            <option value="gewinde">Gewinde → Kernloch</option>
+          </select>
+        </label>
+        <label id="bohrGewindeWrap" hidden>Gewinde
+          <select id="bohrGewinde"></select>
+        </label>
+        <label id="bohrNormalWrap">Normalbohrung Ø [mm]
+          <select id="bohrNormal"></select>
+        </label>
+        <label>Ø [mm]
+          <input id="bohrDia" type="text" inputmode="decimal" placeholder="auto"/>
+        </label>
+        <p class="hint span-all">ST/VA/ALU gleich. Ab Schwelle → Läsern, darunter nur Körnen. 0,5–25 mm.</p>
+      </section>
+      <div class="zk-grid">
+        <section class="card">
+          <div class="hero zk-hero" id="bohrBar">
+            <div class="hero-label">ERGEBNIS</div>
+            <div class="hero-prisma" id="bohrHero">—</div>
+            <div class="hero-detail" id="bohrHint">Dicke und Bohrung wählen.</div>
+          </div>
+          <button type="button" class="btn btn-sm" id="bohrReset">Notizen zurücksetzen</button>
+        </section>
+        <section class="card table-wrap">
+          <h3 class="section-title">Schwelle Läsern (Ø min)</h3>
+          <table>
+            <thead><tr><th>t [mm]</th><th>ab Ø Läsern</th></tr></thead>
+            <tbody id="bohrThresh"></tbody>
+          </table>
+        </section>
+      </div>
+      <section class="card table-wrap">
+        <h3 class="section-title">Erfahrungswerte / Notizen</h3>
+        <table>
+          <thead><tr><th>t</th><th>Ø</th><th>Aktion</th></tr></thead>
+          <tbody id="bohrNotes"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <div id="viewEntlastung" hidden>
+      <section class="card inputs">
+        <label>Materialstärke t [mm]
+          <select id="entT"></select>
+        </label>
+        <p class="hint">1–3 mm → Schlitz 1 mm · ab 4 mm Stufen bis 12 mm (Kantengrenze).</p>
+      </section>
+      <div class="zk-grid">
+        <section class="card">
+          <div class="hero zk-hero ok" id="entBar">
+            <div class="hero-label" id="entLabel">Langloch-Breite</div>
+            <div class="hero-prisma" id="entHero">—</div>
+            <div class="hero-detail" id="entHint">Materialstärke 1–12 mm wählen.</div>
+          </div>
+          <button type="button" class="btn btn-sm" id="entReset" style="margin-top:10px">Standard laden</button>
+        </section>
+        <section class="card table-wrap">
+          <h3 class="section-title">Tabelle 1–12 mm</h3>
+          <table>
+            <thead><tr><th>t [mm]</th><th>Schlitzbreite</th></tr></thead>
+            <tbody id="entRows"></tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+
     <p class="foot-brand">Hintergrund von <a href="https://www.it-designs.de/" target="_blank" rel="noopener">IT Designs</a> · Prisma Auswahl Test</p>
   </div>
 
@@ -230,8 +306,10 @@
   </div>
 
   <script src="bg-matrix.js"></script>
-  <script src="engine.js?v=2026-10-03-zk"></script>
-  <script src="app.js?v=2026-10-03-zk"></script>
-  <script src="zkantung.js?v=2026-10-03-zk"></script>
+  <script src="engine.js?v=2026-10-03-be"></script>
+  <script src="app.js?v=2026-10-03-be"></script>
+  <script src="zkantung.js?v=2026-10-03-be"></script>
+  <script src="bohrung.js?v=2026-10-03-be"></script>
+  <script src="entlastung.js?v=2026-10-03-be"></script>
 </body>
 </html>

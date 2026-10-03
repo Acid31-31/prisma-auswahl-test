@@ -568,9 +568,147 @@ function evaluateZKantung(thicknessMm, s1, steg, s2, w1 = 90, w2 = 90, dies) {
   });
 }
 
+/* ========== Bohrung (wie WPF BohrungService + GewindeCatalog) ========== */
+const BOHR_T_MIN = 0.5, BOHR_T_MAX = 25, BOHR_FLOOR = 1.0;
+
+const GEWINDE = [
+  ["M3", 2.5], ["M4", 3.3], ["M5", 4.2], ["M6", 5.1], ["M8", 6.8],
+  ["M10", 8.5], ["M12", 10.2], ["M14", 12.0], ["M16", 14.2], ["M18", 15.5],
+  ["M20", 17.5], ["M22", 19.5], ["M24", 21.0], ["M27", 24.0], ["M30", 26.5],
+];
+
+function defaultBohrungEntries() {
+  return [
+    { t: 5, d: 3.3, a: "Laesern" }, { t: 6, d: 3.3, a: "Laesern" },
+    { t: 8, d: 3.3, a: "Koernen" }, { t: 8, d: 4.2, a: "Koernen" }, { t: 8, d: 5.1, a: "Laesern" },
+    { t: 10, d: 4.2, a: "Koernen" }, { t: 10, d: 5.1, a: "Laesern" }, { t: 10, d: 6.8, a: "Laesern" },
+    { t: 12, d: 4.2, a: "Koernen" }, { t: 12, d: 8.5, a: "Laesern" },
+    { t: 15, d: 9.0, a: "Koernen" }, { t: 15, d: 10.2, a: "Laesern" },
+    { t: 20, d: 10.2, a: "Koernen" }, { t: 20, d: 11.0, a: "Laesern" },
+    { t: 20, d: 14.0, a: "Laesern" }, { t: 20, d: 17.0, a: "Laesern" },
+    { t: 25, d: 17.5, a: "Koernen" },
+  ];
+}
+
+function bohrBuildAnchors(entries) {
+  const map = new Map();
+  for (const e of entries || []) {
+    if (!(e.t >= BOHR_T_MIN - 0.01 && e.t <= BOHR_T_MAX + 0.01)) continue;
+    const k = Math.round(e.t * 100) / 100;
+    if (!map.has(k)) map.set(k, { koernen: [], laesern: [] });
+    const g = map.get(k);
+    if (e.a === "Koernen") g.koernen.push(e.d);
+    else g.laesern.push(e.d);
+  }
+  const anchors = [...map.entries()].sort((a, b) => a[0] - b[0]).map(([t, g]) => {
+    let dMin;
+    if (g.koernen.length && g.laesern.length)
+      dMin = (Math.max(...g.koernen) + Math.min(...g.laesern)) / 2;
+    else if (g.laesern.length) dMin = Math.min(...g.laesern);
+    else dMin = Math.max(...g.koernen) + 0.5;
+    return [t, Math.max(BOHR_FLOOR, dMin)];
+  });
+  if (!anchors.length) return [[5, 3.3], [25, 18]];
+  if (anchors[0][0] > BOHR_T_MIN + 0.01) {
+    const thin = Math.max(BOHR_FLOOR, anchors[0][1] * (BOHR_T_MIN / anchors[0][0]));
+    anchors.unshift([BOHR_T_MIN, thin]);
+  }
+  const last = anchors[anchors.length - 1];
+  if (last[0] < BOHR_T_MAX - 0.01)
+    anchors.push([BOHR_T_MAX, last[1] + (BOHR_T_MAX - last[0]) * 0.4]);
+  return anchors;
+}
+
+function bohrMinLaserDiameter(entries, thicknessMm) {
+  const t = Math.min(BOHR_T_MAX, Math.max(BOHR_T_MIN, thicknessMm));
+  const anchors = bohrBuildAnchors(entries);
+  if (anchors.length === 1) return anchors[0][1];
+  if (t <= anchors[0][0]) return anchors[0][1];
+  if (t >= anchors[anchors.length - 1][0]) return anchors[anchors.length - 1][1];
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const [t0, d0] = anchors[i], [t1, d1] = anchors[i + 1];
+    if (t + 1e-9 < t0 || t - 1e-9 > t1) continue;
+    if (Math.abs(t1 - t0) < 1e-9) return d0;
+    return d0 + ((t - t0) / (t1 - t0)) * (d1 - d0);
+  }
+  return anchors[anchors.length - 1][1];
+}
+
+function bohrResolve(entries, thicknessMm, diameterMm) {
+  const th = bohrMinLaserDiameter(entries, thicknessMm);
+  const exact = (entries || []).find(e =>
+    Math.abs(e.t - thicknessMm) < 0.051 && Math.abs(e.d - diameterMm) < 0.051);
+  if (diameterMm + 1e-9 >= th) {
+    const hint = exact?.a === "Laesern"
+      ? `Notiz · Schwelle Ø ${fmtDe(th)} mm`
+      : `${fmtDe(thicknessMm)} mm: ab Ø ${fmtDe(th)} mm → Läsern (ST/VA/ALU)`;
+    return { action: "Laesern", hint, threshold: th };
+  }
+  const hintK = exact?.a === "Koernen"
+    ? `Notiz · Schwelle Ø ${fmtDe(th)} mm`
+    : `${fmtDe(thicknessMm)} mm: unter Ø ${fmtDe(th)} mm → nur Körnen`;
+  return { action: "Koernen", hint: hintK, threshold: th };
+}
+
+function bohrThresholdTable(entries, stepMm = 0.5) {
+  const out = [];
+  for (let t = BOHR_T_MIN; t <= BOHR_T_MAX + 1e-9; t += stepMm) {
+    const tt = Math.round(t * 100) / 100;
+    if (tt > 3 && Math.abs(tt % 1) > 0.01) continue;
+    out.push({ t: tt, d: Math.round(bohrMinLaserDiameter(entries, tt) * 100) / 100 });
+  }
+  return out;
+}
+
+function gewindeCore(label) {
+  if (!label) return null;
+  const hit = GEWINDE.find(g => g[0].toLowerCase() === String(label).trim().toLowerCase());
+  return hit ? { label: hit[0], core: hit[1] } : null;
+}
+
+/* ========== Entlastungsschlitze (wie WPF EntlastungService) ========== */
+const ENT_T_MIN = 1, ENT_T_MAX = 12;
+
+function defaultEntlastungEntries() {
+  return [
+    { t: 1, w: 1 }, { t: 2, w: 1 }, { t: 3, w: 1 }, { t: 4, w: 2 },
+    { t: 5, w: 3 }, { t: 6, w: 3 }, { t: 8, w: 4 }, { t: 10, w: 5 }, { t: 12, w: 5 },
+  ];
+}
+
+function entSlotWidthFor(thicknessMm) {
+  if (thicknessMm + 1e-9 < ENT_T_MIN || thicknessMm - 1e-9 > ENT_T_MAX) return null;
+  if (thicknessMm <= 3) return 1;
+  if (thicknessMm <= 4) return 2;
+  if (thicknessMm <= 6) return 3;
+  if (thicknessMm <= 8) return 4;
+  return 5;
+}
+
+function entResolve(entries, thicknessMm) {
+  if (thicknessMm + 1e-9 < ENT_T_MIN)
+    return { ok: false, width: 0, hint: `Entlastungsschlitz erst ab ${fmtDe(ENT_T_MIN)} mm.` };
+  if (thicknessMm - 1e-9 > ENT_T_MAX)
+    return { ok: false, width: 0, hint: `Nur bis ${fmtDe(ENT_T_MAX)} mm (Kantengrenze).` };
+  const exact = (entries || []).find(e => Math.abs(e.t - thicknessMm) < 0.051);
+  if (exact)
+    return { ok: true, width: exact.w, hint: `${fmtDe(thicknessMm)} mm → Langloch ${fmtDe(exact.w)} mm (Notiz)` };
+  const w = entSlotWidthFor(thicknessMm);
+  if (w == null) return { ok: false, width: 0, hint: "Kein Wert ermittelbar." };
+  const rule = thicknessMm <= 3 ? "1–3 mm → Schlitz 1 mm"
+    : thicknessMm <= 4 ? "4 mm → Breite 2 mm"
+      : thicknessMm <= 6 ? "5–6 mm → Breite 3 mm"
+        : thicknessMm <= 8 ? "7–8 mm → Breite 4 mm"
+          : "9–12 mm → Breite 5 mm";
+  return { ok: true, width: w, hint: `${fmtDe(thicknessMm)} mm → Langloch-Breite ${fmtDe(w)} mm · ${rule}` };
+}
+
 window.PrismaEngine = {
   find, fmtDe, fitText, getMachineMax, setMachineMax, getTools, setTools,
   defaultTools, resolveTool, marksToText, parseMarks, MACHINE_MAX_MM: 3000,
   gradesForGroup, defaultGrade, gradeDisplay, autoGrade, MATERIAL_GRADES,
   evaluateZKantung, defaultZDies, zkOpeningMm, zkAngleFactor, zkMinSteg, ZK_LIMITS, ZK_MIN_OPEN_RATIO,
+  GEWINDE, defaultBohrungEntries, bohrResolve, bohrMinLaserDiameter, bohrThresholdTable, gewindeCore,
+  BOHR_T_MIN, BOHR_T_MAX,
+  defaultEntlastungEntries, entResolve, entSlotWidthFor, ENT_T_MIN, ENT_T_MAX,
 };

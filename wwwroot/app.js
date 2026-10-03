@@ -543,15 +543,21 @@
   el.fertigung.addEventListener("input", recalc);
   el.laenge.addEventListener("input", recalc);
 
-  // Ansicht umschalten: Prisma ↔ Z-Kantung
+  // Ansicht umschalten: Prisma / Z-Kantung / Bohrung / Entlastung
+  const views = {
+    prisma: "viewPrisma",
+    zkantung: "viewZKantung",
+    bohrung: "viewBohrung",
+    entlastung: "viewEntlastung",
+  };
   document.querySelectorAll(".tab[data-view]").forEach(btn => {
     btn.addEventListener("click", () => {
       const view = btn.getAttribute("data-view");
       document.querySelectorAll(".tab[data-view]").forEach(b => b.classList.toggle("active", b === btn));
-      const prisma = document.getElementById("viewPrisma");
-      const zk = document.getElementById("viewZKantung");
-      if (prisma) prisma.hidden = view !== "prisma";
-      if (zk) zk.hidden = view !== "zkantung";
+      Object.entries(views).forEach(([key, id]) => {
+        const node = document.getElementById(id);
+        if (node) node.hidden = key !== view;
+      });
       if (view === "zkantung") window.dispatchEvent(new Event("resize"));
     });
   });
