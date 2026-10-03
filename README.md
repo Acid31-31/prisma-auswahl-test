@@ -1,5 +1,10 @@
 # Prisma Auswahl — Web-Test
 
-Statische Testversion der Prisma-Auswahl (gleiche Empfehlungs-/Belastungslogik wie die lokale WPF-App).
+Statische Testversion der Prisma-Auswahl (gleiche Logik wie die lokale WPF-App).
 
-**Live:** nach dem Deploy unter GitHub Pages.
+## Module
+
+- **Prisma** — Presskraft, Maßabzug, Empfehlung
+- **Z-Kantung** — Steg/Schenkel, V ≥ 4×t, Auto-Prisma, Werkstattzeichnung
+
+**Live:** https://acid31-31.github.io/prisma-auswahl-test/
