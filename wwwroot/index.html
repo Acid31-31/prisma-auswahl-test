@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#030913"/>
+  <title>Prisma Auswahl — Test · IT Designs</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="brand-mark">IT Designs · Test</div>
+        <h1>Prisma Auswahl</h1>
+        <p class="sub">Web-Testversion — gleiche Logik wie die WPF-App. Rot = geht nicht.</p>
+      </div>
+      <div class="header-actions">
+        <nav class="tabs" aria-label="Module">
+          <button type="button" class="tab active" data-view="prisma">Prisma</button>
+          <button type="button" class="tab" data-view="zkantung">Z-Kantung</button>
+        </nav>
+        <button type="button" class="btn" id="btnSettings">Einstellungen</button>
+        <span class="badge">TEST · GITHUB PAGES</span>
+      </div>
+    </header>
+
+    <div id="viewPrisma">
+    <section class="card inputs">
+      <label>Materialgruppe
+        <select id="group"></select>
+      </label>
+      <label>Blechdicke [mm]
+        <select id="thickness"></select>
+      </label>
+      <label>Material (Tabelle)
+        <select id="material"></select>
+      </label>
+      <label>Legierung
+        <select id="alloy"></select>
+      </label>
+      <label>Fertigungsmaß / Sollmaß [mm]
+        <input id="fertigung" type="text" inputmode="decimal" placeholder="z. B. 50"/>
+      </label>
+      <label>Werkstücklänge / Biegelänge [mm]
+        <input id="laenge" type="text" inputmode="decimal" value="1000"/>
+      </label>
+      <p class="hint" id="laengeHint">Maschine max. 3000 mm · Uniband max. 1000 mm · Empfehlung: geringste Gesamtkraft</p>
+    </section>
+
+    <section class="hero" id="hero">
+      <div class="hero-label" id="heroLabel">EMPFOHLEN</div>
+      <div class="hero-prisma" id="heroPrisma">—</div>
+      <div class="hero-detail" id="heroDetail">Werte wählen…</div>
+    </section>
+
+    <section class="card table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Prisma</th>
+            <th>Dicke</th>
+            <th>Belastung</th>
+            <th>Presskraft</th>
+            <th>Gesamt kN</th>
+            <th>OW</th>
+            <th>Matr. max</th>
+            <th>Grenze</th>
+            <th>Mindestkante</th>
+            <th>Verfahren</th>
+            <th>Radius</th>
+            <th>Maßabzug</th>
+            <th>Abwicklung</th>
+            <th>Min. Abw.</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+
+    <footer id="status">Lade Tabelle…</footer>
+    </div>
+
+    <div id="viewZKantung" hidden>
+      <section class="card inputs zk-inputs">
+        <label>Materialstärke t [mm]
+          <select id="zkT"></select>
+        </label>
+        <label>Schenkel 1 [mm]
+          <input id="zkS1" type="text" inputmode="decimal" list="zkMassList"/>
+        </label>
+        <label>Steg [mm]
+          <input id="zkSteg" type="text" inputmode="decimal" list="zkMassList"/>
+        </label>
+        <label>Schenkel 2 [mm]
+          <input id="zkS2" type="text" inputmode="decimal" list="zkMassList"/>
+        </label>
+        <label>Winkel 1 (Innen) [°]
+          <input id="zkW1" type="text" inputmode="decimal" list="zkWinkelList"/>
+        </label>
+        <label>Winkel 2 (Innen) [°]
+          <input id="zkW2" type="text" inputmode="decimal" list="zkWinkelList"/>
+        </label>
+        <datalist id="zkMassList"></datalist>
+        <datalist id="zkWinkelList"></datalist>
+        <p class="hint span-all">Alles aktualisiert automatisch — passende Prisma an beiden Knicken, skaliert zur V-Größe. Min.Steg = B/2+t · V ≥ 4×t.</p>
+      </section>
+
+      <div class="zk-grid">
+        <section class="card zk-draw-card">
+          <h3 class="section-title">Werkstattzeichnung</h3>
+          <canvas id="zkCanvas" width="640" height="360"></canvas>
+          <p class="hint" id="zkDrawHint">Maße eingeben.</p>
+        </section>
+        <section class="card">
+          <h3 class="section-title">Passende Prisma</h3>
+          <div class="hero zk-hero" id="zkHeroBox">
+            <div class="hero-label">AUTOMATISCH</div>
+            <div class="hero-prisma" id="zkHero">—</div>
+            <div class="hero-detail" id="zkHint">Werte wählen…</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Prisma</th>
+                  <th>Min.S</th>
+                  <th>Min.Steg=B/2+t</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="zkRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <p class="foot-brand">Hintergrund von <a href="https://www.it-designs.de/" target="_blank" rel="noopener">IT Designs</a> · Prisma Auswahl Test</p>
+  </div>
+
+  <!-- Einstellungen -->
+  <div class="modal" id="modalSettings" hidden>
+    <div class="modal-card">
+      <h2>Einstellungen</h2>
+      <p class="modal-sub">Prisma- und Werkstoffwerte anpassen oder Maschinenlimit ändern.</p>
+      <button type="button" class="btn btn-primary btn-block" id="btnPrismaAnpassung">Prisma Anpassung</button>
+      <p class="hint" style="margin:8px 0 16px">Material und Prisma wählen — dann alle Werte ändern.</p>
+      <label>Maschinen-Max. Biegelänge [mm]
+        <input id="cfgMachineMax" type="text" inputmode="decimal" value="3000"/>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="btnSaveMachine">Maschinenwert speichern</button>
+        <button type="button" class="btn" id="btnCloseSettings">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prisma Anpassung -->
+  <div class="modal" id="modalPrisma" hidden>
+    <div class="modal-card modal-wide">
+      <h2>Prisma Anpassung</h2>
+      <p class="modal-sub">Material und Prisma wählen — danach erscheinen alle Werte zum Ändern.</p>
+
+      <div class="inputs card" style="margin-bottom:14px">
+        <label>Materialgruppe
+          <select id="editGroup"></select>
+        </label>
+        <label>Material / Werkstoff
+          <select id="editMaterial"></select>
+        </label>
+        <label>Prisma
+          <select id="editPrisma"></select>
+        </label>
+      </div>
+
+      <div id="editValues" hidden>
+        <h3 class="section-title">Werkzeug</h3>
+        <div class="inputs card">
+          <label>Bezeichnung
+            <input id="toolLabel" type="text"/>
+          </label>
+          <label>V [mm]
+            <input id="toolV" type="text" inputmode="decimal"/>
+          </label>
+          <label>Mindestkante [mm]
+            <input id="toolMinLeg" type="text" inputmode="decimal"/>
+          </label>
+          <label>Max. Biegelänge [mm]
+            <input id="toolMaxLen" type="text" inputmode="decimal"/>
+          </label>
+          <label>V_eff (nur Uniband)
+            <input id="toolUniV" type="text" inputmode="decimal"/>
+          </label>
+          <label class="span-2">Belastungspunkte (Dicke:Marke; …)
+            <input id="toolMarks" type="text"/>
+          </label>
+        </div>
+
+        <div class="section-row">
+          <h3 class="section-title">Maßabzug / Werkstoff-Werte</h3>
+          <button type="button" class="btn btn-sm" id="btnAddDicke">Dicke +</button>
+        </div>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Dicke</th>
+                <th>Verfahren</th>
+                <th>Radius</th>
+                <th>Maßabzug</th>
+                <th>Min. Abw.</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="editRows"></tbody>
+          </table>
+        </div>
+        <p class="hint" style="margin-top:8px">Belastung: x=optimal, -=möglich, !=Überlast. Beispiel: 4:!; 5:-; 6:x</p>
+      </div>
+      <p id="editEmpty" class="hint" style="text-align:center;padding:24px">Bitte Material und Prisma wählen.</p>
+
+      <div class="modal-actions">
+        <button type="button" class="btn" id="btnResetTable">Standard (alles)</button>
+        <button type="button" class="btn" id="btnCancelPrisma">Abbrechen</button>
+        <button type="button" class="btn btn-primary" id="btnSavePrisma">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="bg-matrix.js"></script>
+  <script src="engine.js?v=2026-10-03-zk"></script>
+  <script src="app.js?v=2026-10-03-zk"></script>
+  <script src="zkantung.js?v=2026-10-03-zk"></script>
+</body>
+</html>
