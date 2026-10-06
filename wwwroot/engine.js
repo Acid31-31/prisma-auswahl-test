@@ -24,8 +24,10 @@ const DIE_MAX_KNM = {
 };
 const UNI_DIE_MAX = 1500;
 const PUNCHES = [
-  { id: "OW210", label: "OW210/S", max: 400 },
-  { id: "OW200", label: "OW200/S", max: 800 },
+  // Trumpf 210S — H 240 · 400 kN/m · Art. 824677 (Serie gleich, Breite variabel)
+  { id: "210S", label: "210S", max: 400, article: "824677", height: 240 },
+  // Trumpf 200S — 86° · R1,0 · H 220 · 800 kN/m · Art. 824476
+  { id: "200S", label: "200S", max: 800, article: "824476", height: 220, angle: 86, tipR: 1.0 },
 ];
 
 function dieMaxKnM(tool) {
@@ -44,6 +46,7 @@ function resolveCapacity(pressKnM, tool) {
   const empty = {
     pressKnM: pressKnM ?? null, dieMaxKnM: 0, punchMaxKnM: null,
     upperToolLabel: "—", effectiveLimitKnM: 0, limitingSide: "", capacityOk: true,
+    punchArticle: null, punchHeight: null,
   };
   if (!tool) return empty;
   const dieMax = dieMaxKnM(tool);
@@ -59,6 +62,8 @@ function resolveCapacity(pressKnM, tool) {
         effectiveLimitKnM: limit,
         limitingSide: limitingSide(limit, dieMax, punch.id, punch.max),
         capacityOk: true,
+        punchArticle: punch.article || null,
+        punchHeight: punch.height ?? null,
       };
     }
   }
@@ -69,6 +74,7 @@ function resolveCapacity(pressKnM, tool) {
     effectiveLimitKnM: failLimit,
     limitingSide: limitingSide(failLimit, dieMax, PUNCHES[1].id, PUNCHES[1].max),
     capacityOk: false,
+    punchArticle: null, punchHeight: null,
   };
 }
 
@@ -97,15 +103,27 @@ function overloadReason(info) {
 function formatLoadInfo(info) {
   if (info.dieMaxKnM <= 0 && info.upperToolLabel === "—") return { ow: "—", matr: "—", grenze: "—", detail: "—" };
   const matr = info.dieMaxKnM > 0 ? Math.round(info.dieMaxKnM).toLocaleString("de-DE") + " kN/m" : "—";
-  const ow = info.upperToolLabel;
+  let ow = info.upperToolLabel;
+  if (ow !== "—" && info.punchMaxKnM)
+    ow = ow + " · " + Math.round(info.punchMaxKnM).toLocaleString("de-DE") + " kN/m";
   let grenze = "—";
   if (info.effectiveLimitKnM > 0) {
     grenze = Math.round(info.effectiveLimitKnM).toLocaleString("de-DE") + " kN/m";
     if (info.limitingSide === "Matrize") grenze += " (Matrize)";
-    else if (info.limitingSide === "OW210" || info.limitingSide === "OW200") grenze += " (" + info.limitingSide + ")";
+    else if (info.limitingSide === "210S" || info.limitingSide === "200S"
+      || info.limitingSide === "OW210" || info.limitingSide === "OW200") {
+      const side = info.limitingSide === "OW210" ? "210S"
+        : info.limitingSide === "OW200" ? "200S" : info.limitingSide;
+      grenze += " (" + side + ")";
+    }
   }
   const parts = [];
-  if (ow !== "—") parts.push("OW " + ow);
+  if (info.upperToolLabel !== "—") {
+    let owp = "OW " + info.upperToolLabel;
+    if (info.punchArticle) owp += " · Art. " + info.punchArticle;
+    if (info.punchHeight) owp += " · H" + info.punchHeight;
+    parts.push(owp);
+  }
   if (info.dieMaxKnM > 0) parts.push("Matr. max " + matr);
   if (info.effectiveLimitKnM > 0) parts.push("Grenze " + grenze);
   return { ow, matr, grenze, detail: parts.length ? parts.join(" · ") : "—" };
