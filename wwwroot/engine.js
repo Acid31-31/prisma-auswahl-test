@@ -142,7 +142,8 @@ function resolvePunchForZ(pressKnM, dieMax, w1, w2, s1, s2) {
   const press = pressKnM > 0 ? pressKnM : 0;
   let angleFail = null, flangeFail = null, gooseFail = null, loadFail = null, loadLim = 0;
 
-  for (const punch of PUNCHES) {
+  const ordered = [...PUNCHES].sort((a, b) => a.max - b.max);
+  for (const punch of ordered) {
     if (!punch.gooseneck) {
       gooseFail = gooseFail || (punch.label + " nicht gekröpft (Z braucht Kröpfung)");
       continue;
@@ -161,6 +162,7 @@ function resolvePunchForZ(pressKnM, dieMax, w1, w2, s1, s2) {
       if (!loadFail) { loadFail = punch; loadLim = limit; }
       continue;
     }
+    if (dieMax > 0 && !punchMatchesDieClass(punch, dieMax)) continue;
     return { punch, fail: "", limit };
   }
 
@@ -186,6 +188,12 @@ function limitingSide(limit, dieMax, punchId, punchMax) {
   return punchId;
 }
 
+/** OW muss zur Prisma-Klasse passen (≥ Hälfte Matrizen-Zulassung). Sonst: große V mit wenig kN → zu schwaches OW. */
+function punchMatchesDieClass(punch, dieMax) {
+  if (!(dieMax > 0) || !(punch.max > 0)) return true;
+  return punch.max + 0.5 >= dieMax * 0.5;
+}
+
 function resolveCapacity(pressKnM, tool) {
   const empty = {
     pressKnM: pressKnM ?? null, dieMaxKnM: 0, punchMaxKnM: null,
@@ -197,26 +205,29 @@ function resolveCapacity(pressKnM, tool) {
   const base = { ...empty, dieMaxKnM: dieMax };
   if (pressKnM == null || pressKnM <= 0) return base;
 
-  for (const punch of PUNCHES) {
+  // Schwach → stark; große Prisma → stärkeres OW (nicht nur Presskraft)
+  const ordered = [...PUNCHES].sort((a, b) => a.max - b.max);
+  for (const punch of ordered) {
     const limit = Math.min(dieMax, punch.max);
-    if (pressKnM <= limit + 0.5) {
-      return {
-        pressKnM, dieMaxKnM: dieMax, punchMaxKnM: punch.max,
-        upperToolLabel: punch.label,
-        effectiveLimitKnM: limit,
-        limitingSide: limitingSide(limit, dieMax, punch.id, punch.max),
-        capacityOk: true,
-        punchArticle: punch.article || null,
-        punchHeight: punch.height ?? null,
-      };
-    }
+    if (pressKnM > limit + 0.5) continue;
+    if (!punchMatchesDieClass(punch, dieMax)) continue;
+    return {
+      pressKnM, dieMaxKnM: dieMax, punchMaxKnM: punch.max,
+      upperToolLabel: punch.label,
+      effectiveLimitKnM: limit,
+      limitingSide: limitingSide(limit, dieMax, punch.id, punch.max),
+      capacityOk: true,
+      punchArticle: punch.article || null,
+      punchHeight: punch.height ?? null,
+    };
   }
-  const failLimit = Math.min(dieMax, PUNCHES[1].max);
+  const last = ordered[ordered.length - 1] || PUNCHES[PUNCHES.length - 1];
+  const failLimit = Math.min(dieMax, last.max);
   return {
-    pressKnM, dieMaxKnM: dieMax, punchMaxKnM: PUNCHES[1].max,
+    pressKnM, dieMaxKnM: dieMax, punchMaxKnM: last.max,
     upperToolLabel: "—",
     effectiveLimitKnM: failLimit,
-    limitingSide: limitingSide(failLimit, dieMax, PUNCHES[1].id, PUNCHES[1].max),
+    limitingSide: limitingSide(failLimit, dieMax, last.id, last.max),
     capacityOk: false,
     punchArticle: null, punchHeight: null,
   };
@@ -239,9 +250,48 @@ function overloadReason(info) {
   if (info.capacityOk || info.pressKnM == null) return "Überlast";
   const p = Math.round(info.pressKnM).toLocaleString("de-DE");
   const l = Math.round(info.effectiveLimitKnM).toLocaleString("de-DE");
-  if (info.limitingSide === "Matrize") return `Überlast: ${p} > ${l} kN/m (Matrize)`;
-  if (info.upperToolLabel !== "—") return `Überlast: ${p} > ${l} kN/m (${info.upperToolLabel})`;
-  return `Überlast: ${p} > ${l} kN/m`;
+  if (info.limitingSide === "Matrize")
+    return `Überlast: Presskraft ${p} > Grenze ${l} kN/m (UW/Matrize limitiert)`;
+  const ow = info.upperToolLabel && info.upperToolLabel !== "—"
+    ? `OW ${info.upperToolLabel}`
+    : (info.punchMaxKnM != null
+      ? `OW max ${Math.round(info.punchMaxKnM).toLocaleString("de-DE")} kN/m`
+      : "OW");
+  return `Überlast: Presskraft ${p} > Grenze ${l} kN/m (${ow} limitiert)`;
+}
+
+/** Rm, Presskraft, OW, UW/Matrize, Grenze — warum OK oder Überlast. */
+function explainLoad(info, rm, prisma) {
+  const parts = [];
+  if (prisma) parts.push(prisma);
+  parts.push(`Rm ${Math.round(rm)} N/mm²`);
+  if (info.pressKnM != null)
+    parts.push(`Presskraft ${Math.round(info.pressKnM).toLocaleString("de-DE")} kN/m`);
+  else
+    parts.push("Presskraft —");
+  let ow = "—";
+  if (info.upperToolLabel && info.upperToolLabel !== "—") {
+    ow = info.upperToolLabel;
+    if (info.punchMaxKnM != null)
+      ow += ` · ${Math.round(info.punchMaxKnM).toLocaleString("de-DE")} kN/m`;
+  } else if (info.punchMaxKnM != null) {
+    ow = `kein OW trägt · max ${Math.round(info.punchMaxKnM).toLocaleString("de-DE")} kN/m`;
+  }
+  parts.push("OW " + ow);
+  const matr = info.dieMaxKnM > 0
+    ? `${Math.round(info.dieMaxKnM).toLocaleString("de-DE")} kN/m` : "—";
+  parts.push("UW/Matr. max " + matr);
+  let grenze = "—";
+  if (info.effectiveLimitKnM > 0) {
+    grenze = `${Math.round(info.effectiveLimitKnM).toLocaleString("de-DE")} kN/m`;
+    if (info.limitingSide === "Matrize") grenze += " (Matrize)";
+    else if (info.limitingSide) grenze += ` (${info.limitingSide})`;
+  }
+  parts.push("Grenze " + grenze);
+  parts.push(info.capacityOk
+    ? "Belastung OK (Presskraft ≤ Grenze)"
+    : overloadReason(info));
+  return parts.join(" · ");
 }
 
 function formatLoadInfo(info) {
@@ -279,7 +329,6 @@ function defaultTools() {
     die(8, 6.0, [[0.5, "!"], [0.8, "-"], [1.0, "x"], [1.2, "-"], [1.5, "!"]], 2700),
     die(10, 7.5, [[0.8, "!"], [1.0, "-"], [1.2, "x"], [1.5, "-"], [2.0, "!"]]),
     die(16, 12.0, [[1.2, "!"], [1.5, "-"], [2.0, "x"], [2.5, "-"], [3.0, "!"]]),
-    die(20, 15.0, [[1.5, "!"], [2.0, "-"], [2.5, "x"], [3.0, "-"], [4.0, "!"]]),
     die(24, 18.0, [[2.0, "!"], [2.5, "-"], [3.0, "x"], [4.0, "-"], [5.0, "!"]]),
     die(30, 22.5, [[2.5, "!"], [3.0, "-"], [4.0, "x"], [5.0, "-"], [6.0, "!"]]),
     // V-40: Werkstatt bis 10 mm (eingeschränkt) — wie WPF ToolLoad
@@ -294,8 +343,14 @@ function defaultTools() {
 
 let TOOLS = defaultTools();
 
+function isRemovedDie(t) {
+  if (!t || t.isUni) return false;
+  return t.v === 20 || /^V\s*-?\s*20$/i.test(String(t.label || t.key || ""));
+}
+
 function setTools(list) {
-  TOOLS = list;
+  const next = Array.isArray(list) ? list.filter(t => !isRemovedDie(t)) : [];
+  TOOLS = next.length ? next : defaultTools();
 }
 function setMachineMax(mm) {
   MACHINE_MAX_MM = mm > 0 ? mm : 3000;
@@ -384,7 +439,8 @@ const PRESS_ROWS = [
   [6.00, { 24: 670, 30: 503, 40: 402, 50: 335, 60: 287, 70: 251, 80: 223 }],
   [7.00, { 30: 684, 40: 547, 50: 456, 60: 391, 70: 342, 80: 304 }],
   [8.00, { 40: 715, 50: 596, 60: 511, 70: 447, 80: 397 }],
-  [10.0, { 50: 798, 60: 698, 70: 621, 80: 559 }],
+  // V-70: 719 @ Rm400 → S235×1 m ≈ 989 kN (Trumpf-App)
+  [10.0, { 50: 798, 60: 698, 70: 719, 80: 559 }],
   [12.0, { 60: 1005, 70: 894, 80: 804 }],
 ];
 
@@ -499,23 +555,25 @@ function abwicklung(row, fert) {
   return fert + row.massabzug * 0.5;
 }
 
-function evaluatePossible(row, tool, fitVal, loadInfo, fert, abw, laenge) {
-  if (fitVal === "Unzulaessig") return { ok: false, reason: "unzulässig" };
-  if (!loadInfo.capacityOk) return { ok: false, reason: overloadReason(loadInfo) };
-  if (fitVal === "Eingeschraenkt") return { ok: false, reason: overloadReason(loadInfo) };
+function evaluatePossible(row, tool, fitVal, loadInfo, fert, abw, laenge, rm) {
+  const loadExplain = explainLoad(loadInfo, rm ?? RM, row.prisma);
+  if (fitVal === "Unzulaessig")
+    return { ok: false, reason: "unzulässig für diese Dicke (Werkstatt-Marke) · " + loadExplain };
+  if (!loadInfo.capacityOk || fitVal === "Eingeschraenkt")
+    return { ok: false, reason: loadExplain };
   if (laenge != null) {
     if (MACHINE_MAX_MM > 0 && laenge > MACHINE_MAX_MM + 0.02)
-      return { ok: false, reason: `Maschinen-Max. Biegelänge überschritten (max. ${fmtDe(MACHINE_MAX_MM)} mm)` };
+      return { ok: false, reason: `Maschinen-Max. Biegelänge überschritten (max. ${fmtDe(MACHINE_MAX_MM)} mm) · ${loadExplain}` };
     if (tool?.maxBend != null && laenge > tool.maxBend + 0.02)
-      return { ok: false, reason: `Max. Biegelänge überschritten (max. ${fmtDe(tool.maxBend)} mm)` };
+      return { ok: false, reason: `Max. Biegelänge überschritten (max. ${fmtDe(tool.maxBend)} mm) · ${loadExplain}` };
   }
   if (fert != null) {
     if (tool?.minLeg != null && fert + 0.02 < tool.minLeg)
-      return { ok: false, reason: `Mindestkante zu kurz (min. ${fmtDe(tool.minLeg)} mm)` };
+      return { ok: false, reason: `Mindestkante zu kurz (min. ${fmtDe(tool.minLeg)} mm) · ${loadExplain}` };
     if (abw != null && row.mindestAbwicklung != null && abw + 0.02 < row.mindestAbwicklung)
-      return { ok: false, reason: `Abw. zu kurz (${fmtDe(abw)} < ${fmtDe(row.mindestAbwicklung)} mm)` };
+      return { ok: false, reason: `Abw. zu kurz (${fmtDe(abw)} < ${fmtDe(row.mindestAbwicklung)} mm) · ${loadExplain}` };
   }
-  return { ok: true, reason: "" };
+  return { ok: true, reason: loadExplain };
 }
 
 function rankVerfahren(v) {
@@ -528,9 +586,20 @@ function rankVerfahren(v) {
 }
 
 function prismaOrder(prisma) {
-  if (/^UNI/i.test(prisma || "")) return 1000;
+  if (/^UNI/i.test(prisma || "")) return 45; // bei Alternativen neben kleinen V
   const m = /V\s*-?\s*(\d+)/i.exec(prisma || "");
   return m ? parseInt(m[1], 10) : 2000;
+}
+
+function toolSortV(tool) {
+  if (!tool) return 9999;
+  if (tool.isUni) return tool.uniV || 45;
+  return tool.v || 9999;
+}
+
+function toolKey(tool) {
+  if (!tool) return "";
+  return tool.isUni ? "UNI" : ("V-" + tool.v);
 }
 
 function pickBest(scored, thickness) {
@@ -577,21 +646,56 @@ function find(rows, group, material, thickness, fert, laenge, rmOverride) {
   }
   const rm = (rmOverride != null && rmOverride > 0) ? rmOverride : RM;
   const lengthM = laenge != null && laenge > 0 ? laenge / 1000 : null;
-  const scored = match.map(r => {
-    const tool = resolveTool(r.prisma);
+
+  function scoreRow(r, tool) {
     const abw = abwicklung(r, fert);
     const load = tool ? loadKnPerM(tool, thickness, rm) : null;
     const total = load != null && lengthM != null ? load * lengthM : null;
     const loadInfo = resolveCapacity(load, tool);
     const f = tool ? displayFit(tool, thickness, loadInfo.capacityOk) : "Unzulaessig";
-    const ev = evaluatePossible(r, tool, f, loadInfo, fert, abw, laenge);
+    const ev = evaluatePossible(r, tool, f, loadInfo, fert, abw, laenge, rm);
     const li = formatLoadInfo(loadInfo);
+    const loadDetail = explainLoad(loadInfo, rm, r.prisma);
     return {
       row: r, tool, fit: f, load, total, abw, ok: ev.ok, reason: ev.reason,
       loadInfo, ow: li.ow, matrMax: li.matr, grenze: li.grenze, werkzeugDetail: li.detail,
-      rm,
+      loadDetail, rm,
     };
-  });
+  }
+
+  const scored = match.map(r => scoreRow(r, resolveTool(r.prisma)));
+
+  // Alle Werkstatt-Prismen ergänzen (kleinere V / UNI), damit man Alternativen prüfen kann
+  const have = new Set(scored.map(s => toolKey(s.tool)).filter(Boolean));
+  const matLabel = match[0]?.material || material || group;
+  const grpLabel = match[0]?.group || group;
+  for (const tool of getTools()) {
+    const key = toolKey(tool);
+    if (!key || have.has(key)) continue;
+    const marks = tool.marks || [];
+    if (!marks.length) continue;
+    const tMin = marks[0][0], tMax = marks[marks.length - 1][0];
+    if (thickness < tMin - 0.051 || thickness > tMax + 0.051) continue;
+    // Nächste Maßabzug-Zeile derselben Prisma als Vorlage (sonst ohne Maßabzug)
+    const samePrisma = pool.filter(r => toolKey(resolveTool(r.prisma)) === key)
+      .sort((a, b) => Math.abs(a.thickness - thickness) - Math.abs(b.thickness - thickness));
+    const tpl = samePrisma[0];
+    const syn = {
+      group: grpLabel,
+      material: matLabel,
+      thickness,
+      thicknessLabel: fmtDe(thickness),
+      prisma: tool.isUni ? "UNI" : tool.label,
+      verfahren: tpl?.verfahren || (tool.isUni ? "UNI" : ("Matritze " + tool.label)),
+      radiusText: tpl?.radiusText || "",
+      massabzug: tpl?.massabzug ?? null,
+      mindestAbwicklung: tpl?.mindestAbwicklung ?? null,
+      _synthetic: true,
+    };
+    scored.push(scoreRow(syn, tool));
+    have.add(key);
+  }
+
   const preferred = pickBest(scored, thickness);
   return scored
     .map(s => ({
@@ -599,9 +703,12 @@ function find(rows, group, material, thickness, fert, laenge, rmOverride) {
       empfohlen: preferred != null && s.row === preferred,
       dickeLabel: s.row.thicknessLabel || fmtDe(s.row.thickness),
     }))
+    // Empfohlen zuerst, dann kleinere Matrizen (zum Umschalten/Prüfen), UNI bei ~V45
     .sort((a, b) => {
       if (a.empfohlen !== b.empfohlen) return a.empfohlen ? -1 : 1;
       if (a.ok !== b.ok) return a.ok ? -1 : 1;
+      const va = toolSortV(a.tool), vb = toolSortV(b.tool);
+      if (va !== vb) return va - vb;
       const fr = FIT[b.fit] - FIT[a.fit];
       if (fr) return fr;
       return (a.total ?? a.load ?? 99999) - (b.total ?? b.load ?? 99999);
@@ -890,7 +997,8 @@ function entResolve(entries, thicknessMm) {
 }
 
 window.PrismaEngine = {
-  find, fmtDe, fitText, getMachineMax, setMachineMax, getTools, setTools,
+  find, fmtDe, fitText, explainLoad, overloadReason,
+  getMachineMax, setMachineMax, getTools, setTools,
   defaultTools, resolveTool, marksToText, parseMarks, MACHINE_MAX_MM: 3000,
   gradesForGroup, defaultGrade, gradeDisplay, autoGrade, MATERIAL_GRADES,
   evaluateZKantung, defaultZDies, zkOpeningMm, zkAngleFactor, zkMinSteg, ZK_LIMITS, ZK_MIN_OPEN_RATIO,

@@ -147,6 +147,10 @@ h1 {
 .hero-prisma.fail { color: var(--fail); }
 #zkRows tr { cursor: pointer; }
 #zkRows tr.sel td { background: rgba(26, 61, 102, 0.55); }
+#rows tr { cursor: pointer; }
+#rows tr.sel td { background: rgba(26, 61, 102, 0.45); }
+#rows tr.ok td { color: var(--green); }
+#rows tr.bad td { color: var(--fail); }
 #zkRows td.ok { color: var(--green); }
 #zkRows td.warn { color: #e6b35a; }
 #zkRows td.fail { color: var(--fail); }

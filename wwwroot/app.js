@@ -11,7 +11,7 @@
   const STORE_MAX = "prisma-web-machineMax";
   const STORE_VER = "prisma-web-dataVer";
   /** Hochzählen, wenn table.json maßgeblich neu ist — alte localStorage-Zeilen verwerfen. */
-  const DATA_VERSION = "2026-10-07-zkantung-zoom";
+  const DATA_VERSION = "2026-10-07-no-v20";
 
   let baseRows = [];
   let rows = [];
@@ -111,17 +111,33 @@
   function groupsOf(list) {
     return [...new Set(list.map(r => r.group))].sort((a, b) => a.localeCompare(b, "de"));
   }
+  function materialSortRank(material, group) {
+    const g = (group || "").trim();
+    const m = material || "";
+    if (/^VA$/i.test(g) || /^V2A$/i.test(g)) {
+      if (/^V2a$/i.test(m) || /^V2A$/i.test(m)) return 0;
+      if (/^V2a/i.test(m) || /^V2A/i.test(m)) return 1;
+      if (/Träne|Trane|Riffel/i.test(m)) return 9;
+      return 5;
+    }
+    return m.localeCompare(g, "de", { sensitivity: "accent" }) === 0 ? 0 : 1;
+  }
   function materialsOf(list, group) {
     return [...new Set(list.filter(r => r.group === group).map(r => r.material))]
-      .sort((a, b) => {
-        const ap = a.localeCompare(group, "de", { sensitivity: "accent" }) === 0 ? 0 : 1;
-        const bp = b.localeCompare(group, "de", { sensitivity: "accent" }) === 0 ? 0 : 1;
-        return ap - bp || a.localeCompare(b, "de");
-      });
+      .sort((a, b) => materialSortRank(a, group) - materialSortRank(b, group)
+        || a.localeCompare(b, "de"));
   }
+  /** VA → V2a (nicht Tränenblech); Stahl → Stahl */
   function preferredMaterial(mats, group) {
     if (!mats.length) return "";
-    const match = mats.find(m => m.localeCompare(group, "de", { sensitivity: "accent" }) === 0);
+    const g = (group || "").trim();
+    if (/^VA$/i.test(g) || /^V2A$/i.test(g) || /Edel/i.test(g)) {
+      const exact = mats.find(m => /^V2a$/i.test(m) || /^V2A$/i.test(m));
+      if (exact) return exact;
+      const pref = mats.find(m => /^V2a/i.test(m) || /^V2A/i.test(m));
+      if (pref) return pref;
+    }
+    const match = mats.find(m => m.localeCompare(g, "de", { sensitivity: "accent" }) === 0);
     return match || mats[0];
   }
   function thicknesses(group, material) {
@@ -253,17 +269,61 @@
     const results = find(rows, group, material, thickness, fert, laenge, grade.rm);
     const best = results.find(r => r.empfohlen);
 
+    /** Kurz: Presskraft / Grenze / Rm — für Spalte Belastung */
+    function shortLoad(r) {
+      const li = r.loadInfo || {};
+      const rm = r.rm != null ? r.rm : grade.rm;
+      const p = li.pressKnM != null ? Math.round(li.pressKnM).toLocaleString("de-DE") : "—";
+      const g = li.effectiveLimitKnM > 0 ? Math.round(li.effectiveLimitKnM).toLocaleString("de-DE") : "—";
+      const ok = li.capacityOk ? "OK" : "Überlast";
+      return `Rm ${Math.round(rm)} · ${p}/${g} kN/m · ${ok}`;
+    }
+
+    function showHeroFor(r, asEmpfohlen) {
+      if (!r) return;
+      if (asEmpfohlen && r.ok) {
+        el.hero.classList.remove("fail");
+        el.heroLabel.textContent = "EMPFOHLEN";
+      } else if (r.ok) {
+        el.hero.classList.remove("fail");
+        el.heroLabel.textContent = "ALTERNATIVE · PRÜFEN";
+      } else {
+        el.hero.classList.add("fail");
+        el.heroLabel.textContent = "NICHT MÖGLICH";
+      }
+      el.heroPrisma.textContent = r.row.prisma;
+      const parts = [
+        grade.label + " Rm " + grade.rm,
+        r.row.material,
+        (r.dickeLabel || fmtDe(thickness)) + " mm",
+        "Belastung " + fitText(r.fit),
+      ];
+      if (r.load != null) parts.push(Math.round(r.load).toLocaleString("de-DE") + " kN/m");
+      if (r.total != null) parts.push("Gesamt " + Math.round(r.total).toLocaleString("de-DE") + " kN");
+      parts.push("OW " + (r.ow ?? "—"));
+      parts.push("UW/Matr. " + (r.matrMax ?? "—"));
+      parts.push("Grenze " + (r.grenze ?? "—"));
+      parts.push(r.loadInfo?.capacityOk ? "Belastung OK" : (r.reason || r.loadDetail || "Überlast"));
+      el.heroDetail.textContent = parts.join(" · ");
+    }
+
     el.tbody.innerHTML = "";
     results.forEach((r, i) => {
       const tr = document.createElement("tr");
-      if (r.empfohlen) tr.className = "ok";
+      tr.style.cursor = "pointer";
+      tr.title = "Anklicken: Belastung für diese Prisma anzeigen";
+      if (r.empfohlen) tr.className = "ok sel";
       else if (!r.ok) tr.className = "bad";
       else if (i % 2) tr.className = "alt";
       const kraft = r.load == null ? "—" : Math.round(r.load).toLocaleString("de-DE") + " kN/m"
         + (/^UNI/i.test(r.row.prisma) ? " (V≈45)" : "");
       const gesamt = r.total == null ? "—" : Math.round(r.total).toLocaleString("de-DE") + " kN";
       const minKante = r.tool?.minLeg == null ? "—" : fmtDe(r.tool.minLeg);
-      const status = r.empfohlen ? "empfohlen" : (r.reason || "");
+      const status = r.empfohlen
+        ? ("empfohlen · " + (r.loadDetail || ""))
+        : (r.ok ? ("Alternative · " + (r.loadDetail || "")) : (r.reason || r.loadDetail || ""));
+      // Belastung immer mit Rm/Presskraft/Grenze — auch bei „möglich“
+      const belText = fitText(r.fit) + (r.loadDetail ? " · " + shortLoad(r) : "");
       tr.innerHTML = `
         <td>${r.row.prisma}</td>
         <td>${r.dickeLabel}</td>
@@ -272,50 +332,46 @@
         <td>${r.row.massabzug == null ? "—" : fmtDe(r.row.massabzug)}</td>
         <td>${r.abw == null ? "—" : fmtDe(r.abw)}</td>
         <td>${r.row.mindestAbwicklung == null ? "—" : fmtDe(r.row.mindestAbwicklung)}</td>
-        <td>${fitText(r.fit)}</td>
+        <td>${minKante}</td>
+        <td title="${String(r.loadDetail || belText).replace(/"/g, "&quot;")}">${belText}</td>
         <td>${kraft}</td>
         <td>${gesamt}</td>
         <td>${r.ow ?? "—"}</td>
         <td>${r.matrMax ?? "—"}</td>
         <td>${r.grenze ?? "—"}</td>
-        <td>${minKante}</td>
-        <td>${status}</td>`;
+        <td title="${String(status).replace(/"/g, "&quot;")}">${status}</td>`;
+      tr.addEventListener("click", () => {
+        el.tbody.querySelectorAll("tr").forEach(x => x.classList.remove("sel"));
+        tr.classList.add("sel");
+        showHeroFor(r, !!r.empfohlen);
+        const alts = results.filter(x => !x.empfohlen).map(x => x.row.prisma).slice(0, 8).join(", ");
+        el.status.textContent = r.empfohlen
+          ? `${results.length} Prismen — empfohlen: ${r.row.prisma}. Zeile anklicken = Alternative prüfen` + (alts ? ` (${alts}…)` : "")
+          : `Prüfen: ${r.row.prisma} · ${r.loadDetail || r.reason || ""}`;
+      });
       el.tbody.appendChild(tr);
     });
 
     if (!best) {
-      el.hero.classList.add("fail");
-      el.heroLabel.textContent = "NICHT MÖGLICH";
-      el.heroPrisma.textContent = "—";
-      el.heroDetail.textContent = results.length
-        ? "Kein Werkzeug passt (Überlast, Länge, Mindestkante oder Min.-Abwicklung)."
-        : "Keine Treffer in der Tabelle.";
-      el.status.textContent = results.length
-        ? `${results.length} Einträge — alle gesperrt.`
-        : "Keine Treffer.";
+      const sample = results.slice().sort((a, b) => (b.load ?? 0) - (a.load ?? 0))[0] || null;
+      if (!sample) {
+        el.hero.classList.add("fail");
+        el.heroLabel.textContent = "NICHT MÖGLICH";
+        el.heroPrisma.textContent = "—";
+        el.heroDetail.textContent = "Keine Treffer in der Tabelle.";
+        el.status.textContent = "Keine Treffer.";
+        return;
+      }
+      showHeroFor(sample, false);
+      el.status.textContent = `${results.length} Einträge — alle gesperrt. Zeile anklicken = Details. ${sample.reason || sample.loadDetail || ""}`;
       return;
     }
 
-    el.hero.classList.remove("fail");
-    el.heroLabel.textContent = "EMPFOHLEN";
-    el.heroPrisma.textContent = best.row.prisma;
-    const parts = [
-      grade.label + " Rm " + grade.rm,
-      best.row.material,
-      best.dickeLabel + " mm",
-      "Belastung " + fitText(best.fit),
-      "Maßabzug " + (best.row.massabzug == null ? "—" : fmtDe(best.row.massabzug)),
-    ];
-    if (best.load != null) parts.push(Math.round(best.load).toLocaleString("de-DE") + " kN/m");
-    if (best.total != null) parts.push("Gesamt " + Math.round(best.total).toLocaleString("de-DE") + " kN");
-    if (best.tool?.minLeg != null) parts.push("Mindestkante " + fmtDe(best.tool.minLeg) + " mm");
-    if (best.row.radiusText) parts.push(best.row.radiusText);
-    if (best.abw != null) parts.push("Abwicklung " + fmtDe(best.abw) + " mm");
-    if (best.werkzeugDetail && best.werkzeugDetail !== "—") parts.push(best.werkzeugDetail);
-    el.heroDetail.textContent = parts.join(" · ");
-
+    showHeroFor(best, true);
+    const alts = results.filter(r => !r.empfohlen && r.ok).map(r => r.row.prisma);
     const blocked = results.filter(r => !r.ok).length;
     let note = `${results.length} Prismen — empfohlen: ${best.row.prisma} (${grade.label}, Rm ${grade.rm}).`;
+    if (alts.length) note += ` Alternativen zum Prüfen: ${alts.join(", ")} (Zeile anklicken).`;
     if (laenge != null) note += ` Länge ${fmtDe(laenge)} mm.`;
     if (blocked) note += ` ${blocked} nicht möglich (rot).`;
     el.status.textContent = note;
