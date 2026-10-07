@@ -47,7 +47,7 @@
       <label>Werkstücklänge / Biegelänge [mm]
         <input id="laenge" type="text" inputmode="decimal" value="1000"/>
       </label>
-      <p class="hint" id="laengeHint">Maschine max. 3000 mm · Uniband max. 1000 mm · Empfehlung: geringste Gesamtkraft</p>
+      <p class="hint" id="laengeHint">Maschine max. 3000 mm · Unibend max. 1000 mm · Empfehlung: geringste Gesamtkraft</p>
     </section>
 
     <section class="hero" id="hero">
@@ -106,29 +106,38 @@
         </label>
         <datalist id="zkMassList"></datalist>
         <datalist id="zkWinkelList"></datalist>
-        <p class="hint span-all">Alles aktualisiert automatisch — passende Prisma an beiden Knicken, skaliert zur V-Größe. Min.Steg = B/2+t · V ≥ 4×t.</p>
+        <p class="hint span-all">Automatisch: Prisma + gekröpftes OW. Spitzenwinkel (z. B. 86°) = schärfster Innenwinkel · Presskraft · Rücklauf in Kröpfung. Min.Steg = B/2+t · V ≥ 4×t.</p>
       </section>
 
       <div class="zk-grid">
         <section class="card zk-draw-card">
-          <h3 class="section-title">Werkstattzeichnung</h3>
-          <canvas id="zkCanvas" width="640" height="360"></canvas>
-          <p class="hint" id="zkDrawHint">Maße eingeben.</p>
+          <div class="zk-draw-head">
+            <h3 class="section-title">Werkstattzeichnung</h3>
+            <div class="zk-zoom-btns">
+              <button type="button" id="zkZoomOut" class="btn btn-sm" title="Verkleinern">−</button>
+              <button type="button" id="zkZoomReset" class="btn btn-sm" title="Zoom zurücksetzen">100 %</button>
+              <button type="button" id="zkZoomIn" class="btn btn-sm" title="Vergrößern">+</button>
+            </div>
+          </div>
+          <canvas id="zkCanvas" width="640" height="420"></canvas>
+          <p class="hint" id="zkDrawHint">Mausrad: zoomen · rechte Maustaste: verschieben · Maße eingeben.</p>
         </section>
         <section class="card">
-          <h3 class="section-title">Passende Prisma</h3>
+          <h3 class="section-title">Empfohlenes Werkzeug</h3>
           <div class="hero zk-hero" id="zkHeroBox">
-            <div class="hero-label">AUTOMATISCH</div>
+            <div class="hero-label">SIMULATION</div>
             <div class="hero-prisma" id="zkHero">—</div>
-            <div class="hero-detail" id="zkHint">Werte wählen…</div>
+            <div class="hero-detail" id="zkHint">Maße eingeben — Prisma + OW erscheinen automatisch.</div>
           </div>
+          <p class="hint" style="margin:0 0 6px">Weitere passende (nur machbare)</p>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Prisma</th>
+                  <th>OW</th>
                   <th>Min.S</th>
-                  <th>Min.Steg=B/2+t</th>
+                  <th>Min.Steg</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -159,7 +168,7 @@
         <label>Ø [mm]
           <input id="bohrDia" type="text" inputmode="decimal" placeholder="auto"/>
         </label>
-        <p class="hint span-all">ST/VA/ALU gleich. Ab Schwelle → Läsern, darunter nur Körnen. 0,5–25 mm.</p>
+        <p class="hint span-all">ST/VA/ALU gleich. Ab Schwelle → Lasern, darunter nur Körnen. 0,5–25 mm.</p>
       </section>
       <div class="zk-grid">
         <section class="card">
@@ -171,9 +180,9 @@
           <button type="button" class="btn btn-sm" id="bohrReset">Notizen zurücksetzen</button>
         </section>
         <section class="card table-wrap">
-          <h3 class="section-title">Schwelle Läsern (Ø min)</h3>
+          <h3 class="section-title">Schwelle Lasern (Ø min)</h3>
           <table>
-            <thead><tr><th>t [mm]</th><th>ab Ø Läsern</th></tr></thead>
+            <thead><tr><th>t [mm]</th><th>ab Ø Lasern</th></tr></thead>
             <tbody id="bohrThresh"></tbody>
           </table>
         </section>
@@ -266,7 +275,7 @@
           <label>Max. Biegelänge [mm]
             <input id="toolMaxLen" type="text" inputmode="decimal"/>
           </label>
-          <label>V_eff (nur Uniband)
+          <label>V_eff (nur Unibend)
             <input id="toolUniV" type="text" inputmode="decimal"/>
           </label>
           <label class="span-2">Belastungspunkte (Dicke:Marke; …)
@@ -308,7 +317,7 @@
   <script src="bg-matrix.js"></script>
   <script src="engine.js?v=2026-10-03-be"></script>
   <script src="app.js?v=2026-10-03-be"></script>
-  <script src="zkantung.js?v=2026-10-03-be"></script>
+  <script src="zkantung.js?v=2026-10-07-zoom"></script>
   <script src="bohrung.js?v=2026-10-03-be"></script>
   <script src="entlastung.js?v=2026-10-03-be"></script>
 </body>

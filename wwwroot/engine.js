@@ -13,7 +13,8 @@ function die(v, minLeg, marks, maxBend) {
 }
 function uni() {
   return {
-    v: 0, minLeg: 6, label: "UNI", isUni: true, uniV: 45, maxBend: 1000,
+    v: 0, minLeg: 6, label: "Unibend", isUni: true, uniV: 45, maxBend: 1000,
+    article: "29150", manufacturer: "Trumpf", body: 45, dieMax: 1500,
     marks: [[0.5, "-"], [1.5, "x"], [3.0, "-"], [4.0, "-"]], rm: RM
   };
 }
@@ -24,14 +25,157 @@ const DIE_MAX_KNM = {
 };
 const UNI_DIE_MAX = 1500;
 const PUNCHES = [
-  // Trumpf 210S — H 240 · 400 kN/m · Art. 824677 (Serie gleich, Breite variabel)
-  { id: "210S", label: "210S", max: 400, article: "824677", height: 240 },
-  // Trumpf 200S — 86° · R1,0 · H 220 · 800 kN/m · Art. 824476
-  { id: "200S", label: "200S", max: 800, article: "824476", height: 220, angle: 86, tipR: 1.0 },
+  // Trumpf OW210/S — H240 · ~88° · gekröpft · Art. 824677
+  {
+    id: "210S", label: "210S", max: 400, article: "824677", height: 240, angle: 88, tipR: 1.0,
+    gooseneck: true, maxFlange: 85, throat: 85, tipOffset: 18, neck: 12, shoulder: 37.5, shoulderH: 28,
+  },
+  // Trumpf OW200/S — H220 · R1/86° · Art. 824476
+  // Querschnitt Maßbild: 37,5 / 28 / 12 / 18 / 86° / R1, Höhe 220
+  {
+    id: "200S", label: "200S", max: 800, article: "824476", height: 220, angle: 86, tipR: 1.0,
+    gooseneck: true, maxFlange: 80, throat: 80, tipOffset: 18, neck: 12, shoulder: 37.5, shoulderH: 28,
+  },
 ];
+
+/** Trumpf-Seitenansicht: Spitze (0,0)=Zapfenachse, Schaft links, Kröpfung +X. */
+function punchOutlineMm(p) {
+  const H = Math.max(120, p.height || 220);
+  const tipA = p.angle || 86;
+  const tipOffset = Math.max(6, p.tipOffset || 18);
+  const neck = Math.max(8, p.neck || 12);
+  const shoulder = Math.max(neck + 8, p.shoulder || 37.5);
+  const shoulderH = Math.max(16, p.shoulderH || 28);
+  const throat = Math.max(20, p.throat || 80);
+  const tipR = p.tipR || 1;
+  const tangH = 16;
+  const tangHalf = Math.min(10, shoulder * 0.28);
+  const tangNotch = 3.5;
+  const t = Math.tan((tipA * Math.PI) / 360);
+  const stemL = -tipOffset;
+  const stemR = -tipOffset + neck;
+  const yTipL = Math.abs(stemL) / t;
+  const yTipR = Math.max(tipR + 4, Math.abs(stemR) / t + 2);
+  const yShoulderBot = H - shoulderH;
+  const yShoulderTop = H;
+  const shL = -shoulder / 2;
+  const shR = shoulder / 2;
+  const yGooseBot = Math.max(yTipR + 10, H * 0.16);
+  const yGooseTop = yShoulderBot - 4;
+  const gooseR = stemR + throat;
+  const yTangTop = yShoulderTop + tangH;
+
+  if (!p.gooseneck) {
+    return [
+      [0, 0], [stemL, yTipL], [shL, yShoulderBot], [shL, yShoulderTop],
+      [shR, yShoulderTop], [shR, yShoulderBot], [stemR, yTipR],
+    ];
+  }
+  return [
+    [0, 0],
+    [stemL, yTipL],
+    [stemL, yShoulderBot],
+    [shL, yShoulderBot],
+    [shL, yShoulderTop],
+    [-tangHalf, yShoulderTop],
+    [-tangHalf, yTangTop - tangNotch],
+    [-tangHalf + 2, yTangTop - tangNotch],
+    [-tangHalf + 2, yTangTop],
+    [tangHalf - 2, yTangTop],
+    [tangHalf - 2, yTangTop - tangNotch],
+    [tangHalf, yTangTop - tangNotch],
+    [tangHalf, yShoulderTop],
+    [shR, yShoulderTop],
+    [shR, yShoulderBot],
+    [stemR + throat * 0.08, yGooseTop],
+    [gooseR * 0.55 + stemR * 0.45, yGooseTop - (yGooseTop - yGooseBot) * 0.12],
+    [gooseR, (yGooseTop + yGooseBot) * 0.55],
+    [gooseR * 0.7 + stemR * 0.3, yGooseBot + 8],
+    [stemR + 2, yGooseBot],
+    [stemR, yTipR],
+    [yTipR * t * 0.35, yTipR * 0.55],
+  ];
+}
+
+function punchDimensionLines(p) {
+  const H = p.height || 220;
+  const tipOffset = p.tipOffset || 18;
+  const neck = p.neck || 12;
+  const shoulder = p.shoulder || 37.5;
+  const shoulderH = p.shoulderH || 28;
+  const tangH = 16;
+  const stemL = -tipOffset;
+  const stemR = -tipOffset + neck;
+  const shL = -shoulder / 2;
+  const shR = shoulder / 2;
+  const yShBot = H - shoulderH;
+  return [
+    [fmtDe(H, 0), [shL - 12, 0], [shL - 12, H]],
+    [fmtDe(shoulder, 1), [shL, H + tangH + 5], [shR, H + tangH + 5]],
+    [fmtDe(shoulderH, 0), [shR + 8, yShBot], [shR + 8, H]],
+    [fmtDe(neck, 0), [stemL, H * 0.52], [stemR, H * 0.52]],
+    [fmtDe(tipOffset, 0), [stemL, (p.tipR || 1) + 8], [0, (p.tipR || 1) + 8]],
+  ];
+}
+
+function punchCatalogCaption(p) {
+  const art = p.article ? ` · Art. ${p.article}` : "";
+  return `OW${p.label}/S · H${fmtDe(p.height, 0)} · R${fmtDe(p.tipR || 1, 1)}/${fmtDe(p.angle, 1)}°${art}`;
+}
+
+/** Spitzenwinkel = schärfster Innenwinkel (86°-OW kann 90°, nicht 70°). */
+function punchCanBendAngle(punch, interiorDeg) {
+  const tip = punch.angle > 0 ? punch.angle : 88;
+  return interiorDeg + 0.51 >= tip;
+}
+
+function punchCanClearFlange(punch, flangeMm) {
+  if (!punch.gooseneck) return flangeMm <= 0.02;
+  if (!(punch.maxFlange > 0)) return true;
+  return flangeMm <= punch.maxFlange + 0.02;
+}
+
+/** OW für Z: gekröpft, Winkel, Rücklauf, Presskraft vs. Matrize. */
+function resolvePunchForZ(pressKnM, dieMax, w1, w2, s1, s2) {
+  const sharpest = Math.min(w1, w2);
+  const returnFlange = Math.max(s1, s2);
+  const press = pressKnM > 0 ? pressKnM : 0;
+  let angleFail = null, flangeFail = null, gooseFail = null, loadFail = null, loadLim = 0;
+
+  for (const punch of PUNCHES) {
+    if (!punch.gooseneck) {
+      gooseFail = gooseFail || (punch.label + " nicht gekröpft (Z braucht Kröpfung)");
+      continue;
+    }
+    if (!punchCanBendAngle(punch, sharpest)) {
+      const tip = punch.angle > 0 ? punch.angle : 88;
+      angleFail = angleFail || `${punch.label}: Spitze ${fmtDe(tip)}° — Innenwinkel ${fmtDe(sharpest)}° zu spitz (min. ${fmtDe(tip)}°)`;
+      continue;
+    }
+    if (!punchCanClearFlange(punch, returnFlange)) {
+      flangeFail = flangeFail || `${punch.label}: Rücklauf-Schenkel ${fmtDe(returnFlange)} > max ${fmtDe(punch.maxFlange)} mm (Kröpfung)`;
+      continue;
+    }
+    const limit = dieMax > 0 ? Math.min(dieMax, punch.max) : punch.max;
+    if (press > limit + 0.5) {
+      if (!loadFail) { loadFail = punch; loadLim = limit; }
+      continue;
+    }
+    return { punch, fail: "", limit };
+  }
+
+  if (angleFail) return { punch: null, fail: angleFail, limit: 0 };
+  if (flangeFail) return { punch: null, fail: flangeFail, limit: 0 };
+  if (PUNCHES.every(p => !p.gooseneck))
+    return { punch: null, fail: "Z-Kantung braucht gekröpftes OW (kein passendes hinterlegt)", limit: 0 };
+  if (loadFail)
+    return { punch: null, fail: `Überlast: ${fmtDe(press)} > ${fmtDe(loadLim)} kN/m (Matrize/OW)`, limit: loadLim };
+  return { punch: null, fail: gooseFail || flangeFail || angleFail || "Kein passendes OW für diese Z-Kantung", limit: 0 };
+}
 
 function dieMaxKnM(tool) {
   if (!tool) return 0;
+  if (tool.dieMax > 0) return tool.dieMax;
   if (tool.isUni) return UNI_DIE_MAX;
   return DIE_MAX_KNM[tool.v] ?? 0;
 }
@@ -505,12 +649,12 @@ function zkAngleFactor(w1, w2) {
   return Math.max(f(w1), f(w2));
 }
 
-function evaluateZKantungOne(die, thicknessMm, s1, steg, s2, stegFactor) {
+function evaluateZKantungOne(die, thicknessMm, s1, steg, s2, stegFactor, w1 = 90, w2 = 90) {
   const body = die.body;
   if (!(body > 0)) {
     return {
       die, possible: false, ergebnis: "—", reason: "Matrizenbreite unbekannt",
-      minSteg: null, minSchenkel: null, opening: 0,
+      minSteg: null, minSchenkel: null, opening: 0, punchLabel: null, owText: "—",
     };
   }
   const factor = Math.max(1, Math.min(2.5, stegFactor || 1));
@@ -521,7 +665,7 @@ function evaluateZKantungOne(die, thicknessMm, s1, steg, s2, stegFactor) {
 
   if (opening + 0.02 < thicknessMm) {
     return {
-      die, possible: false, minSteg, minSchenkel, opening,
+      die, possible: false, minSteg, minSchenkel, opening, punchLabel: null, owText: "—",
       ergebnis: `t=${fmtDe(thicknessMm)} ungeeignet`,
       reason: `V-Öffnung ${fmtDe(opening)} < t=${fmtDe(thicknessMm)}`,
     };
@@ -530,17 +674,23 @@ function evaluateZKantungOne(die, thicknessMm, s1, steg, s2, stegFactor) {
   const thickByRule = opening + 0.02 >= ZK_MIN_OPEN_RATIO * thicknessMm;
   if (!thickByRule) {
     return {
-      die, possible: false, minSteg, minSchenkel, opening,
+      die, possible: false, minSteg, minSchenkel, opening, punchLabel: null, owText: "—",
       ergebnis: `t=${fmtDe(thicknessMm)} ungeeignet`,
       reason: `Dicke ${fmtDe(thicknessMm)} mm für ${die.label} ungeeignet (V=${fmtDe(opening)}, braucht ≥ ${fmtDe(ZK_MIN_OPEN_RATIO * thicknessMm)})`,
     };
   }
 
   const thickFit = tool ? fit(tool, thicknessMm) : "Moeglich";
+  // Markentabelle: UNI nur bis 4 mm usw. — unzulässig = nicht möglich
+  if (thickFit === "Unzulaessig") {
+    return {
+      die, possible: false, minSteg, minSchenkel, opening, punchLabel: null, owText: "—",
+      ergebnis: `t=${fmtDe(thicknessMm)} ungeeignet`,
+      reason: `Dicke ${fmtDe(thicknessMm)} mm für ${die.label} unzulässig (Werkstatt-Belastungstabelle)`,
+    };
+  }
   let thickHint = "";
-  if (thickFit === "Unzulaessig")
-    thickHint = ` · t=${fmtDe(thicknessMm)} außerhalb Presskraft-Tabelle`;
-  else if (thickFit === "Eingeschraenkt")
+  if (thickFit === "Eingeschraenkt")
     thickHint = ` · t=${fmtDe(thicknessMm)} eingeschränkt`;
 
   const s1Ok = s1 + 0.02 >= minSchenkel;
@@ -552,16 +702,34 @@ function evaluateZKantungOne(die, thicknessMm, s1, steg, s2, stegFactor) {
     if (!stegOk) parts.push(`Steg ${fmtDe(steg)} < min ${fmtDe(minSteg)}`);
     if (!s2Ok) parts.push(`Schenkel2 ${fmtDe(s2)} < min ${fmtDe(minSchenkel)}`);
     return {
-      die, possible: false, minSteg, minSchenkel, opening,
+      die, possible: false, minSteg, minSchenkel, opening, punchLabel: null, owText: "—",
       ergebnis: "nicht möglich",
       reason: parts.join(" · ") + thickHint,
     };
   }
 
+  const press = tool ? loadKnPerM(tool, thicknessMm) : null;
+  const dMax = dieMaxKnM(tool);
+  const { punch, fail } = resolvePunchForZ(press, dMax, w1, w2, s1, s2);
+  if (!punch) {
+    return {
+      die, possible: false, minSteg, minSchenkel, opening, punchLabel: null, owText: "—",
+      ergebnis: "OW ungeeignet",
+      reason: fail + thickHint,
+      pressKnM: press,
+    };
+  }
+
+  const tip = punch.angle > 0 ? punch.angle : null;
+  const owText = [punch.label, tip != null ? fmtDe(tip) + "°" : null, fmtDe(punch.max) + " kN/m"]
+    .filter(Boolean).join(" · ");
   return {
     die, possible: true, minSteg, minSchenkel, opening,
+    punchLabel: punch.label, punchTip: tip, punchMax: punch.max, owText,
+    pressKnM: press,
     ergebnis: thickHint ? "möglich · Dicke!" : "möglich",
-    reason: `OK: S1/S2 ≥ ${fmtDe(minSchenkel)}, Steg ≥ ${fmtDe(minSteg)}` + thickHint,
+    reason: `OK: S1/S2 ≥ ${fmtDe(minSchenkel)}, Steg ≥ ${fmtDe(minSteg)} · OW ${punch.label}`
+      + (tip != null ? ` (${fmtDe(tip)}°)` : "") + thickHint,
   };
 }
 
@@ -573,7 +741,7 @@ function evaluateZKantung(thicknessMm, s1, steg, s2, w1 = 90, w2 = 90, dies) {
 
   const factor = zkAngleFactor(w1, w2);
   const list = (dies || defaultZDies()).map(d =>
-    evaluateZKantungOne(d, thicknessMm, s1, steg, s2, factor)
+    evaluateZKantungOne(d, thicknessMm, s1, steg, s2, factor, w1, w2)
   );
   return list.sort((a, b) => {
     if (a.possible !== b.possible) return a.possible ? -1 : 1;
@@ -659,7 +827,7 @@ function bohrResolve(entries, thicknessMm, diameterMm) {
   if (diameterMm + 1e-9 >= th) {
     const hint = exact?.a === "Laesern"
       ? `Notiz · Schwelle Ø ${fmtDe(th)} mm`
-      : `${fmtDe(thicknessMm)} mm: ab Ø ${fmtDe(th)} mm → Läsern (ST/VA/ALU)`;
+      : `${fmtDe(thicknessMm)} mm: ab Ø ${fmtDe(th)} mm → Lasern (ST/VA/ALU)`;
     return { action: "Laesern", hint, threshold: th };
   }
   const hintK = exact?.a === "Koernen"
@@ -726,6 +894,7 @@ window.PrismaEngine = {
   defaultTools, resolveTool, marksToText, parseMarks, MACHINE_MAX_MM: 3000,
   gradesForGroup, defaultGrade, gradeDisplay, autoGrade, MATERIAL_GRADES,
   evaluateZKantung, defaultZDies, zkOpeningMm, zkAngleFactor, zkMinSteg, ZK_LIMITS, ZK_MIN_OPEN_RATIO,
+  PUNCHES, punchOutlineMm, punchCatalogCaption, punchDimensionLines,
   GEWINDE, defaultBohrungEntries, bohrResolve, bohrMinLaserDiameter, bohrThresholdTable, gewindeCore,
   BOHR_T_MIN, BOHR_T_MAX,
   defaultEntlastungEntries, entResolve, entSlotWidthFor, ENT_T_MIN, ENT_T_MAX,

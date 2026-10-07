@@ -121,7 +121,7 @@
     if (!(dia > 0)) {
       el.hero.textContent = `ab Ø ${fmtDe(th)}`;
       el.hero.className = "hero-prisma";
-      el.hint.textContent = `${fmtDe(t)} mm: ab diesem Ø Läsern. Gewinde oder Normalbohrung wählen.`;
+      el.hint.textContent = `${fmtDe(t)} mm: ab diesem Ø Lasern. Gewinde oder Normalbohrung wählen.`;
       return;
     }
 
@@ -129,7 +129,7 @@
     let hint = activeGewinde
       ? `${activeGewinde} (Ø ${fmtDe(dia)}) · ${r.hint}`
       : `Normalbohrung Ø ${fmtDe(dia)} · ${r.hint}`;
-    el.hero.textContent = r.action === "Laesern" ? "Läsern" : "Körnen";
+    el.hero.textContent = r.action === "Laesern" ? "Lasern" : "Körnen";
     el.hero.className = r.action === "Laesern" ? "hero-prisma" : "hero-prisma fail";
     el.hint.textContent = hint;
   }
@@ -139,7 +139,7 @@
     el.table.innerHTML = rows.map(r =>
       `<tr><td>${fmtDe(r.t)}</td><td>${fmtDe(r.d)}</td></tr>`).join("");
     el.notes.innerHTML = entries.map(e =>
-      `<tr><td>${fmtDe(e.t)}</td><td>${fmtDe(e.d)}</td><td>${e.a === "Laesern" ? "Läsern" : "Körnen"}</td></tr>`).join("");
+      `<tr><td>${fmtDe(e.t)}</td><td>${fmtDe(e.d)}</td><td>${e.a === "Laesern" ? "Lasern" : "Körnen"}</td></tr>`).join("");
   }
 
   el.mode.addEventListener("change", setMode);

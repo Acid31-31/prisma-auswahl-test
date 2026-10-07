@@ -11,7 +11,7 @@
   const STORE_MAX = "prisma-web-machineMax";
   const STORE_VER = "prisma-web-dataVer";
   /** Hochzählen, wenn table.json maßgeblich neu ist — alte localStorage-Zeilen verwerfen. */
-  const DATA_VERSION = "2026-10-03-zkantung-v40-10";
+  const DATA_VERSION = "2026-10-07-zkantung-zoom";
 
   let baseRows = [];
   let rows = [];
@@ -196,7 +196,7 @@
       .join(" · ");
     const g = currentGrade();
     el.laengeHint.textContent =
-      `Presskraft × Rm/400 (Rm ${g.rm}) · Maschine max. ${fmtDe(getMachineMax())} mm · Matritzenlänge: ${limits || "—"} mm · Sen.Verzinkt wie DC-01`;
+      `Presskraft × Rm/400 (Rm ${g.rm}) · Maschine max. ${fmtDe(getMachineMax())} mm · Matrizenlänge: ${limits || "—"} mm · Sen.Verzinkt wie DC-01`;
     el.cfgMachineMax.value = fmtDe(getMachineMax());
   }
 

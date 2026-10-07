@@ -120,14 +120,28 @@ h1 {
 @media (max-width: 900px) {
   .zk-grid { grid-template-columns: 1fr; }
 }
+.zk-draw-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.zk-draw-head .section-title { margin: 0; }
+.zk-zoom-btns { display: flex; gap: 4px; flex-shrink: 0; }
+.zk-zoom-btns .btn { min-width: 32px; padding: 4px 8px; }
 .zk-draw-card canvas {
   width: 100%;
-  height: 360px;
+  height: min(52vh, 520px);
+  min-height: 320px;
   display: block;
   background: #0a1522;
   border: 1px solid #1b3853;
   border-radius: 6px;
+  cursor: grab;
+  touch-action: none;
 }
+.zk-draw-card canvas.is-panning { cursor: grabbing; }
 .zk-inputs .span-all { grid-column: 1 / -1; }
 .zk-hero { margin-bottom: 12px; padding: 14px; }
 .hero-prisma.fail { color: var(--fail); }
