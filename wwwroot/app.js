@@ -267,6 +267,11 @@
       tr.innerHTML = `
         <td>${r.row.prisma}</td>
         <td>${r.dickeLabel}</td>
+        <td>${r.row.verfahren || "—"}</td>
+        <td>${r.row.radiusText || "—"}</td>
+        <td>${r.row.massabzug == null ? "—" : fmtDe(r.row.massabzug)}</td>
+        <td>${r.abw == null ? "—" : fmtDe(r.abw)}</td>
+        <td>${r.row.mindestAbwicklung == null ? "—" : fmtDe(r.row.mindestAbwicklung)}</td>
         <td>${fitText(r.fit)}</td>
         <td>${kraft}</td>
         <td>${gesamt}</td>
@@ -274,11 +279,6 @@
         <td>${r.matrMax ?? "—"}</td>
         <td>${r.grenze ?? "—"}</td>
         <td>${minKante}</td>
-        <td>${r.row.verfahren || "—"}</td>
-        <td>${r.row.radiusText || "—"}</td>
-        <td>${r.row.massabzug == null ? "—" : fmtDe(r.row.massabzug)}</td>
-        <td>${r.abw == null ? "—" : fmtDe(r.abw)}</td>
-        <td>${r.row.mindestAbwicklung == null ? "—" : fmtDe(r.row.mindestAbwicklung)}</td>
         <td>${status}</td>`;
       el.tbody.appendChild(tr);
     });
